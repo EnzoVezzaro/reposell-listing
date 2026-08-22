@@ -1,0 +1,121 @@
+reposell Marketplace (Official) License
+Version 1.0, August 2026
+
+Copyright (c) 2026 Enzo Vezzaro and contributors
+
+This license governs use of the reposell Marketplace ("Software"),
+the official marketplace operated by the reposell project, including
+the backend API, frontend web application, and marketplace CLI.
+
+1. GRANT OF RIGHTS
+   Subject to the terms of this License, you are granted a perpetual,
+   worldwide, non-exclusive, royalty-free license to:
+   
+   a) Use, copy, modify, and distribute the Software in source and
+      binary forms;
+   
+   b) Create derivative works based on the Software;
+   
+   c) Sublicense the foregoing rights to third parties;
+   
+   d) Use the Software for any purpose, including commercial purposes.
+
+2. OFFICIAL MARKETPLACE AUTHORITY REQUIREMENTS
+   If you operate a marketplace instance claiming to be the "official
+   reposell marketplace" or using the official verification key:
+   
+   a) You MUST operate the official pricing policy endpoint
+      (`GET /api/v1/pricing`) returning cryptographically signed
+      pricing policies;
+   
+   b) You MUST hold and protect the official signing private key;
+      the corresponding public key MUST be distributed as
+      `config/reposell/verification-key.pub`;
+   
+   c) You MUST implement the public marketplace registration
+      endpoint and issue valid `MarketplaceIdentity` records;
+   
+   d) You MUST implement the trust document endpoint for key
+      rotation with signed key metadata;
+   
+   e) You MUST run the official compliance validation in CI for
+      all deployments (verify.yml MUST pass).
+
+3. PROTOCOL COMPLIANCE
+   Any marketplace implementation (official or public) MUST:
+   
+   a) Implement the `/marketplace` manifest schema as specified
+      in the protocol version;
+   
+   b) Verify repository manifests using the official verification
+      key or a key from the current trust document;
+   
+   c) Calculate fees according to the signed pricing policy;
+      NEVER hardcode fee percentages;
+   
+   d) Record immutable accounting snapshots for every transaction
+      including: product price, currency, marketplace fee,
+      main marketplace percentage, public marketplace percentage,
+      repository owner amount, marketplace amounts, pricing policy
+      ID, and pricing policy version;
+   
+   e) Implement idempotency for all financial operations.
+
+4. TRADEMARK NOTICE
+   "reposell", "reposell marketplace", and the reposell logo are
+   trademarks of Enzo Vezzaro. This License does not grant
+   permission to use these trademarks except:
+   
+   a) To identify the original Software;
+   
+   b) To indicate operation of the official marketplace;
+   
+   c) In accordance with the reposell Trademark Policy.
+
+5. PATENT GRANT
+   Each contributor grants you a perpetual, worldwide, non-exclusive,
+   royalty-free patent license to make, use, sell, offer for sale,
+   import, and otherwise transfer the Software, where such license
+   applies only to patent claims licensable by the contributor that
+   are necessarily infringed by their contribution.
+
+6. DISCLAIMER OF WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY.
+
+7. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+   CONSEQUENTIAL DAMAGES ARISING FROM USE OF THE SOFTWARE.
+
+8. VALIDATION REQUIREMENT
+   Any deployment claiming to be the "official reposell marketplace"
+   MUST pass continuous validation:
+   
+   a) CI workflow `verify.yml` MUST pass on every deployment;
+   
+   b) Runtime MUST verify official pricing policy on startup;
+   
+   c) Runtime MUST enter safe state if policy cannot be validated
+      (MUST NOT assume fallback percentages);
+   
+   d) `acc check` MUST report no ACC0xx errors;
+   
+   e) The official protocol test suite MUST pass.
+
+9. TERMINATION
+   This License terminates automatically if you breach its terms.
+   Rights may be reinstated if the breach is cured within 30 days
+   of notice.
+
+10. GOVERNING LAW
+    This License shall be governed by the laws of the Dominican
+    Republic, without regard to conflict-of-law principles.
+
+11. CONTRIBUTIONS
+    Contributions are accepted under the terms of this License.
+    By submitting a contribution, you represent that you have the
+    right to license it under these terms.

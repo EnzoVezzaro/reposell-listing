@@ -1,0 +1,70 @@
+# reposell-marketplace — ACC configuration
+schema_version: 1
+
+exclude:
+  - "tools/oxlint/anti-slop/**"
+  - ".agents/skills/**"
+  - "node_modules/**"
+  - "dist/**"
+  - "build/"
+
+# engine:
+#   trigger:
+#     mode: commits
+#     threshold: 3
+#   supervisor:
+#     enabled: false
+#     threshold: 85
+#     max_iterations: 3
+
+# ai:
+#   enabled: false
+#   default: main
+#   providers:
+#     - id: main
+#       provider: openai
+#       model: gpt-4o
+#       api_key_env: OPENAI_API_KEY
+
+# Ownership
+ownership:
+  strict: false
+
+# Graph settings
+graph:
+  default_format: "json"
+  default_provenance: true
+
+# Memory settings
+memory:
+  warn_bytes: 65536
+  timestamp_format: "rfc3339"
+
+# Discover
+discover:
+  default_kinds:
+    - "missing-contract"
+    - "missing-dependency"
+    - "stale-dependency"
+    - "unknown-owner"
+    - "orphan-code"
+
+# Multi-agent
+multi_agent:
+  enabled: false
+  max_concurrency: 4
+  max_depth: 1
+  task_timeout: 300
+  resource_limits:
+    cpu_percent: 80
+    memory_mb: 4096
+    token_budget: 1000000
+  isolation_mode: "git_worktree"
+  conflict_policy: "sequentialize"
+
+# Tools
+tools:
+  auto_discover: true
+  plugins:
+    enabled: true
+    directory: ".acc/config/tools"
