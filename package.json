@@ -1,7 +1,7 @@
 {
   "name": "reposell-listing",
   "version": "0.1.0",
-  "description": "Official reposell listing - Static frontend + CI",
+  "description": "The official reposell discovery directory \u2014 registry, verification CI, and discovery payments",
   "type": "module",
   "main": "index.js",
   "scripts": {
