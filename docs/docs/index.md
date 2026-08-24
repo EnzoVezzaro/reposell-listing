@@ -150,7 +150,7 @@ description: Discover software sold straight from the source. Every listing cryp
         <h4>Protocol</h4>
         <ul>
           <li><a href="/protocol/listing-registry">Listing registry</a></li>
-          <li><a href="/docs/protocol/manifest-schema">Manifest schema</a></li>
+          <li><a href="/protocol/manifest-schema">Manifest schema</a></li>
           <li><a href="/protocol/signatures">Signatures</a></li>
           <li><a href="/protocol/sell-endpoint">/sell endpoint</a></li>
         </ul>
