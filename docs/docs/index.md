@@ -20,7 +20,7 @@ description: Discover software sold straight from the source. Every listing cryp
     <a class="lx-btn lx-btn--ghost" href="#trust">Why you can trust it</a>
   </template>
   <template #chip>
-    <HomeCopyChip cmd="reposell listing status" />
+    <HomeCopyChip cmd="npx @reposell/cli listing status" />
   </template>
   <template #trust>
     <ul class="lx-trust" aria-label="Works with">
