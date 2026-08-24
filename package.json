@@ -1,25 +1,43 @@
 {
-  "name": "reposell-marketplace",
-  "version": "1.0.0",
-  "description": "",
+  "name": "reposell-listing",
+  "version": "0.1.0",
+  "description": "Official reposell listing - Static frontend + CI",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit",
+    "acc:check": "acc check",
+    "oxlint": "oxlint",
+    "docs:dev": "vitepress dev docs/docs",
+    "docs:build": "vitepress build docs/docs",
+    "docs:preview": "vitepress preview docs/docs"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/EnzoVezzaro/reposell-marketplace.git"
+    "url": "git+https://github.com/EnzoVezzaro/reposell-listing.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "reposell",
+    "listing",
+    "stripe",
+    "static"
+  ],
+  "author": "Enzo Vezzaro",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/EnzoVezzaro/reposell-marketplace/issues"
+    "url": "https://github.com/EnzoVezzaro/reposell-listing/issues"
   },
-  "homepage": "https://github.com/EnzoVezzaro/reposell-marketplace#readme",
+  "homepage": "https://github.com/EnzoVezzaro/reposell-listing#readme",
   "devDependencies": {
     "@oxlint/plugins": "^1.79.0",
-    "oxlint": "^1.79.0"
+    "animejs": "^4.5.0",
+    "ogl": "^1.0.11",
+    "oxlint": "^1.79.0",
+    "typescript": "^5.0.0",
+    "vitepress": "1.0.0-alpha.75",
+    "vitest": "^1.0.0"
   }
 }

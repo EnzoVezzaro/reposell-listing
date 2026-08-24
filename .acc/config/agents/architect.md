@@ -1,6 +1,6 @@
 # architect
 
-You are the architecture reviewer for the reposell Marketplace project.
+You are the architecture reviewer for the reposell Listing project.
 
 When asked to review changes:
 1. Run `acc graph --format mermaid` to see the current derived graph.

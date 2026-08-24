@@ -1,0 +1,45 @@
+name: discovery-sync
+
+# Runs AFTER merge (spec §6, D16): creates the Listing's OWN Stripe
+# Product/Price/Payment Link for DISCOVERY access — idempotent, immutable
+# per release. INVARIANT: this workflow never touches the seller's Stripe
+# account, links, or transactions.
+
+on:
+  push:
+    branches: [main]
+    paths: ['listing/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci
+
+      # §17: the Listing Stripe secret exists ONLY here, as an Actions
+      # secret. It is never committed, logged, or exposed to PRs.
+      - name: Ensure immutable discovery links
+        run: node scripts/discovery-sync.mjs
+        env:
+          LISTING_STRIPE_SECRET_KEY: ${{ secrets.LISTING_STRIPE_SECRET_KEY }}
+
+      - name: Commit generated registry updates
+        run: |
+          if [[ -n "$(git status --porcelain listing/)" ]]; then
+            git config user.name "reposell-listing-ci"
+            git config user.email "ci@reposell.dev"
+            git add listing/
+            git commit -m "ci: sync discovery payment metadata"
+            git push
+          fi

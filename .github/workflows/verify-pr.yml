@@ -1,0 +1,51 @@
+name: verify-listing-pr
+
+# Listing CI (spec §4, D13): verifies every Listing PR fail-closed.
+# INVARIANT: this workflow only VERIFIES the seller's /sell and its Payment
+# Link. It never creates, modifies, or proxies the seller's transaction.
+
+on:
+  pull_request:
+    paths: ['listing/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Extract PR payload
+        run: |
+          PR_FILE=$(ls listing/*.pr.json | head -1)
+          echo "PR_FILE=$PR_FILE" >> "$GITHUB_ENV"
+
+      - name: Run 12-step verification
+        run: node scripts/verify-pr.mjs "$PR_FILE"
+        env:
+          # Read-only verification needs NO Stripe secret (§17). Discovery
+          # link creation happens only AFTER merge, in discovery-sync.yml.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Label PASS
+        if: success()
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: verified
+
+      - name: Fail closed on BLOCKED
+        if: failure()
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: blocked

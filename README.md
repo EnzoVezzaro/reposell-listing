@@ -1,12 +1,12 @@
-# reposell Marketplace (Official)
+# reposell Listing (Official)
 
-The official reposell marketplace is the authoritative marketplace service for the reposell protocol. It provides product discovery, repository registration, product verification, release indexing, purchase system, payment integration, license system, pricing policy service, signature authority, public marketplace registration, and settlement system.
+The official reposell listing is the authoritative listing service for the reposell protocol. It provides product discovery, repository registration, product verification, release indexing, purchase system, payment integration, license system, pricing policy service, signature authority, public listing registration, and settlement system.
 
 ## Quickstart
 
 ```bash
-# Deploy the marketplace (Static frontend on Vercel/Netlify/Cloudflare Pages)
-# Register a public marketplace instance via static form or CLI
+# Deploy the listing (Static frontend on Vercel/Netlify/Cloudflare Pages)
+# Register a public listing instance via static form or CLI
 ```
 
 ## Core Services (Static Files)
@@ -20,18 +20,18 @@ The official reposell marketplace is the authoritative marketplace service for t
 ## Features
 
 - **Product discovery & search** - Browse and search products across registered repositories
-- **Repository registration** - Verify and index `/marketplace` manifests
+- **Repository registration** - Verify and index `/listing` manifests
 - **Release indexing** - Auto-detect new releases from Git tags
 - **Stripe Embedded Checkout** - Payment UI in the browser, no redirect
 - **Stripe Connect** - Automatic revenue split to sellers
 - **Signed pricing policy** - Cryptographically verified fee structure
 - **License system** - Repository access via GitHub fork on purchase
-- **Public marketplace registration** - Community instances register via static form
+- **Public listing registration** - Community instances register via static form
 - **Settlement & reporting** - Automated revenue distribution
 
 ## Payment Integration
 
-Uses **Stripe Embedded Checkout** with **Stripe Connect** - no backend server required. The marketplace renders Stripe's checkout UI; checkout sessions created via Stripe.js with Connect destination charges for automatic revenue splitting.
+Uses **Stripe Embedded Checkout** with **Stripe Connect** - no backend server required. The listing renders Stripe's checkout UI; checkout sessions created via Stripe.js with Connect destination charges for automatic revenue splitting.
 
 ## Default Domain
 
@@ -46,7 +46,7 @@ All references use `https://reposell.dev` as the default domain:
 - [Protocol](docs/protocol.md)
 - [Pricing Policy](docs/pricing.md)
 - [Signatures](docs/signatures.md)
-- [Marketplace Registration](docs/marketplace-registration.md)
+- [Listing Registration](docs/listing-registration.md)
 - [Payment Architecture](docs/payment-architecture.md)
 - [Development](docs/development.md)
 - [Deployment](docs/deployment.md)

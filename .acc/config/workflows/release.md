@@ -1,4 +1,4 @@
-# release.md — Release a new marketplace version
+# release.md — Release a new listing version
 
 1. Update version in `package.json` (patch/minor/major).
 2. Update `CHANGELOG.md` with release notes.

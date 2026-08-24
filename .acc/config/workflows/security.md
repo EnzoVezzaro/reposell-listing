@@ -1,4 +1,4 @@
-# security.md — Security-sensitive changes for marketplace
+# security.md — Security-sensitive changes for listing
 
 1. Run `acc check` to validate current state.
 2. Run `acc context --include memory` to review learned security notes.
@@ -30,7 +30,7 @@
 - [ ] Secure HTTP headers (CSP, HSTS, etc.)
 - [ ] Dependency auditing (bun audit) - mandatory
 - [ ] Supply chain protection
-- [ ] Never trust: repository manifests, marketplace manifests, GitHub webhooks, pricing responses, product metadata, client-side pricing, client-side transaction state - mandatory
+- [ ] Never trust: repository manifests, listing manifests, GitHub webhooks, pricing responses, product metadata, client-side pricing, client-side transaction state - mandatory
 
 ## Security Audit Triggers
 

@@ -1,4 +1,4 @@
-# feature.md — Add a new marketplace feature
+# feature.md — Add a new listing feature
 
 1. Isolate the functionality: identify the directory boundary (e.g., `src/payments/`, `src/auth/`).
 2. Read the parent AGENTS.md to understand inheritable context.

@@ -63,7 +63,7 @@ The reposell CLI implements the following security measures:
 This policy covers:
 - The reposell CLI (`reposell` package)
 - Generated code and workflows
-- Protocol implementations (`/sell`, `/marketplace`)
+- Protocol implementations (`/sell`, `/listing`)
 
 Out of scope:
 - Third-party dependencies (report to their maintainers)

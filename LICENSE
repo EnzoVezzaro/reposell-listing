@@ -1,11 +1,11 @@
-reposell Marketplace (Official) License
+reposell Listing (Official) License
 Version 1.0, August 2026
 
 Copyright (c) 2026 Enzo Vezzaro and contributors
 
-This license governs use of the reposell Marketplace ("Software"),
-the official marketplace operated by the reposell project, including
-the backend API, frontend web application, and marketplace CLI.
+This license governs use of the reposell Listing ("Software"),
+the official listing operated by the reposell project, including
+the backend API, frontend web application, and listing CLI.
 
 1. GRANT OF RIGHTS
    Subject to the terms of this License, you are granted a perpetual,
@@ -20,9 +20,9 @@ the backend API, frontend web application, and marketplace CLI.
    
    d) Use the Software for any purpose, including commercial purposes.
 
-2. OFFICIAL MARKETPLACE AUTHORITY REQUIREMENTS
-   If you operate a marketplace instance claiming to be the "official
-   reposell marketplace" or using the official verification key:
+2. OFFICIAL LISTING AUTHORITY REQUIREMENTS
+   If you operate a listing instance claiming to be the "official
+   reposell listing" or using the official verification key:
    
    a) You MUST operate the official pricing policy endpoint
       (`GET /api/v1/pricing`) returning cryptographically signed
@@ -32,8 +32,8 @@ the backend API, frontend web application, and marketplace CLI.
       the corresponding public key MUST be distributed as
       `config/reposell/verification-key.pub`;
    
-   c) You MUST implement the public marketplace registration
-      endpoint and issue valid `MarketplaceIdentity` records;
+   c) You MUST implement the public listing registration
+      endpoint and issue valid `ListingIdentity` records;
    
    d) You MUST implement the trust document endpoint for key
       rotation with signed key metadata;
@@ -42,9 +42,9 @@ the backend API, frontend web application, and marketplace CLI.
       all deployments (verify.yml MUST pass).
 
 3. PROTOCOL COMPLIANCE
-   Any marketplace implementation (official or public) MUST:
+   Any listing implementation (official or public) MUST:
    
-   a) Implement the `/marketplace` manifest schema as specified
+   a) Implement the `/listing` manifest schema as specified
       in the protocol version;
    
    b) Verify repository manifests using the official verification
@@ -54,21 +54,21 @@ the backend API, frontend web application, and marketplace CLI.
       NEVER hardcode fee percentages;
    
    d) Record immutable accounting snapshots for every transaction
-      including: product price, currency, marketplace fee,
-      main marketplace percentage, public marketplace percentage,
-      repository owner amount, marketplace amounts, pricing policy
+      including: product price, currency, listing fee,
+      main listing percentage, public listing percentage,
+      repository owner amount, listing amounts, pricing policy
       ID, and pricing policy version;
    
    e) Implement idempotency for all financial operations.
 
 4. TRADEMARK NOTICE
-   "reposell", "reposell marketplace", and the reposell logo are
+   "reposell", "reposell listing", and the reposell logo are
    trademarks of Enzo Vezzaro. This License does not grant
    permission to use these trademarks except:
    
    a) To identify the original Software;
    
-   b) To indicate operation of the official marketplace;
+   b) To indicate operation of the official listing;
    
    c) In accordance with the reposell Trademark Policy.
 
@@ -92,7 +92,7 @@ the backend API, frontend web application, and marketplace CLI.
    CONSEQUENTIAL DAMAGES ARISING FROM USE OF THE SOFTWARE.
 
 8. VALIDATION REQUIREMENT
-   Any deployment claiming to be the "official reposell marketplace"
+   Any deployment claiming to be the "official reposell listing"
    MUST pass continuous validation:
    
    a) CI workflow `verify.yml` MUST pass on every deployment;

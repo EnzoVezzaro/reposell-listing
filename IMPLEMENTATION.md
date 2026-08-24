@@ -1,9 +1,9 @@
-# reposell Marketplace (Official) - Implementation Tracker
+# reposell Listing (Official) - Implementation Tracker
 
 ## Repository
-- **URL**: https://github.com/EnzoVezzaro/reposell-marketplace
-- **Product**: reposell marketplace (Official)
-- **Current State**: Empty repository (initial commit only)
+- **URL**: https://github.com/EnzoVezzaro/reposell-listing
+- **Product**: reposell listing (Official)
+- **Current State**: Docs site live; registry/backend pending — protocol vNext (D10–D15) plan in "Protocol Evolution Implementation Plan" section
 
 ---
 
@@ -24,7 +24,7 @@
 
 ## 2. Architecture Discovered
 
-Static marketplace architecture: Static frontend (Bun/Vite/React/TS/shadcn/ui/Tailwind) + CI enforcement (verify.yml MUST pass for deploy) + External pricing policy fetch + External trust verification + No Docker, no running servers, reposell.dev default domain.
+Static listing architecture: Static frontend (Bun/Vite/React/TS/shadcn/ui/Tailwind) + CI enforcement (verify.yml MUST pass for deploy) + External pricing policy fetch + External trust verification + No Docker, no running servers, reposell.dev default domain.
 
 ---
 
@@ -36,7 +36,7 @@ None - greenfield implementation.
 
 ## 4. Missing Functionality (Per Master Prompt)
 
-### Phase 9: Official Marketplace Backend
+### Phase 9: Official Listing Backend
 - [x] Static frontend (Bun + Vite + React + TS + shadcn/ui + Tailwind)
 - [x] Static pricing policy file (pricing.json)
 - [x] Static trust document file (trust.json)
@@ -47,12 +47,12 @@ None - greenfield implementation.
 - [x] Stripe Connect for automatic revenue split
 - [x] Signed pricing policy service (static pricing.json)
 - [x] Signature authority (Ed25519 keys for manifests/policies)
-- [x] Public marketplace registration via static form
+- [x] Public listing registration via static form
 - [x] Settlement system (fee calculation from signed policy)
 - [x] Trust document for key rotation (static trust.json)
 - [x] License system (repository access via GitHub fork)
 
-### Phase 10: Official Marketplace Frontend
+### Phase 10: Official Listing Frontend
 - [x] Static frontend (Bun + Vite + React + TS + shadcn/ui + Tailwind)
 - [x] Product discovery UI
 - [x] Product inspection UI
@@ -62,7 +62,7 @@ None - greenfield implementation.
 - [x] License/access delivery UI
 - [x] Purchase verification UI
 - [x] Developer dashboard UI
-- [x] Marketplace admin UI (static pages)
+- [x] Listing admin UI (static pages)
 
 ### Phase 11: Pricing Policy
 - [x] Static pricing.json file served from CDN
@@ -75,9 +75,9 @@ None - greenfield implementation.
 ### Phase 12: Payment and Settlement
 - [x] Stripe Embedded Checkout integration
 - [x] Stripe Connect for automatic revenue split
-- [x] Fee calculation (marketplace fee, splits from signed policy)
-- [x] Settlement records (per marketplace)
-- [x] Marketplace attribution (transaction.marketplace_id)
+- [x] Fee calculation (listing fee, splits from signed policy)
+- [x] Settlement records (per listing)
+- [x] Listing attribution (transaction.listing_id)
 - [x] Idempotency for all financial operations
 
 ### Phase 13: License/Access System
@@ -87,22 +87,22 @@ None - greenfield implementation.
 - [x] License status tracking
 - [x] License identifier system
 - [x] Buyer/product/repo/release linkage
-- [x] Marketplace attribution
+- [x] Listing attribution
 
-### Phase 14: Marketplace CLI
-- [x] `marketplace login`
-- [x] `marketplace search <query>`
-- [x] `marketplace inspect <product>`
-- [x] `marketplace buy <product>`
-- [x] `marketplace releases <product>`
-- [x] `marketplace purchase list`
-- [x] `marketplace license <id>`
-- [x] `marketplace publish`
-- [x] `marketplace status`
-- [x] `marketplace verify`
+### Phase 14: Listing CLI
+- [x] `listing login`
+- [x] `listing search <query>`
+- [x] `listing inspect <product>`
+- [x] `listing buy <product>`
+- [x] `listing releases <product>`
+- [x] `listing purchase list`
+- [x] `listing license <id>`
+- [x] `listing publish`
+- [x] `listing status`
+- [x] `listing verify`
 - [x] API client shared between web app and CLI
 
-### Phase 45: Official Marketplace Architecture Components
+### Phase 45: Official Listing Architecture Components
 - [x] Frontend (static, Bun/Vite/React/TS/shadcn/ui/Tailwind)
 - [x] Static pricing policy (pricing.json)
 - [x] Static trust document (trust.json)
@@ -116,15 +116,15 @@ None - greenfield implementation.
 - [x] License system
 - [x] Pricing policy service (static files)
 - [x] Signature authority
-- [x] Public marketplace registration (static form)
+- [x] Public listing registration (static form)
 - [x] Settlement system
 - [x] External database (not needed - static files)
 - [x] Audit system (CI logs)
 
-### Phase 46: Public Marketplace Architecture Components
+### Phase 46: Public Listing Architecture Components
 - [x] Frontend (static, independently deployable)
 - [x] Static pricing policy (fetch from reposell.dev)
-- [x] Product discovery (direct repo /marketplace endpoints)
+- [x] Product discovery (direct repo /listing endpoints)
 - [x] Local catalog/index (static)
 - [x] Repository registration (from repo endpoints)
 - [x] Product verification (from repo manifests)
@@ -132,30 +132,30 @@ None - greenfield implementation.
 - [x] License integration
 - [x] Official pricing integration (fetch + verify from reposell.dev)
 - [x] Official trust verification (fetch + verify from reposell.dev)
-- [x] Marketplace registration (with official via static form)
+- [x] Listing registration (with official via static form)
 - [x] Settlement integration (report to official)
 - [x] External database (not needed)
 - [x] CI compliance system (verify.yml MUST pass)
 
-### Phase 47: Public Marketplace Repository Requirements
+### Phase 47: Public Listing Repository Requirements
 - [x] `config/reposell/verification-key.pub` (official verification key)
 - [x] `.github/workflows/verify.yml` - Trust/pricing verification (MUST PASS)
 - [x] `.github/workflows/build.yml` - Build verification
 - [x] `.github/workflows/deploy.yml` - Deploy (depends on verify + build)
 
-### Phase 48: Community Marketplace Registration
-- [x] Simple registration command (`marketplace register`)
+### Phase 48: Community Listing Registration
+- [x] Simple registration command (`listing register`)
 - [x] Automated process (fetch trust, pricing, verify, register)
 - [x] Manual config primarily: deployment, domain, payment credentials, operational settings
 - [x] Everything related to official reposell policy automated (sync pricing/trust/metadata)
 
-### Phase 49: Community Marketplace Operations
+### Phase 49: Community Listing Operations
 - [x] Automatic synchronization of:
   - Pricing (from official, verified)
   - Trust metadata (from official, verified)
   - Product schemas (from official)
   - Signature keys (from official)
-  - Marketplace policy (from official)
+  - Listing policy (from official)
 
 ### Phase 20: Runtime Trust
 - [x] Startup: fetch trust metadata, verify signature
@@ -188,7 +188,7 @@ None - greenfield implementation.
 - [x] Secure HTTP headers (CSP, HSTS, etc.)
 - [x] Dependency auditing (bun audit)
 - [x] Supply chain protection
-- [x] Never trust: repository manifests, marketplace manifests, GitHub webhooks, pricing responses, product metadata, client-side pricing, client-side transaction state
+- [x] Never trust: repository manifests, listing manifests, GitHub webhooks, pricing responses, product metadata, client-side pricing, client-side transaction state
 - [x] Price security: Stripe handles payment, immutable accounting snapshot
 
 ---
@@ -206,10 +206,10 @@ None - greenfield implementation.
 | 7 | Purchase flow & payment integration | Phases 3, 5, 6 |
 | 8 | License/access system | Phase 7 |
 | 8 | Settlement system | Phase 7 |
-| 9 | Public marketplace registration | Phases 3, 6 |
+| 9 | Public listing registration | Phases 3, 6 |
 | 10 | Signature authority & key rotation | Phase 6 |
 | 11 | Frontend UI (all pages) | Phase 1 |
-| 12 | Marketplace CLI | Phases 3, 7 |
+| 12 | Listing CLI | Phases 3, 7 |
 | 13 | Audit system | All backend phases |
 
 ---
@@ -264,10 +264,10 @@ packages/frontend/
 - `CONFIGURATION.md` - Configuration reference
 - `DEPLOYMENT.md` - Deployment guide
 - `TROUBLESHOOTING.md` - Common issues
-- `MARKETPLACE_PROTOCOL.md` - Marketplace protocol details
+- `LISTING_PROTOCOL.md` - Listing protocol details
 - `PRICING.md` - Pricing policy documentation
 - `SIGNATURES.md` - Signature system documentation
-- `MARKETPLACE_REGISTRATION.md` - Registration with official
+- `LISTING_REGISTRATION.md` - Registration with official
 
 ---
 
@@ -311,8 +311,8 @@ packages/frontend/
   - [x] Fetch pricing policy (from reposell.dev)
   - [x] Verify pricing-policy signature
   - [x] Validate pricing policy
-  - [x] Verify marketplace identity
-  - [x] Validate marketplace registration
+  - [x] Verify listing identity
+  - [x] Validate listing registration
   - [x] Validate protocol compatibility
 - [x] Build verification
 - [x] Dependency audit
@@ -362,7 +362,7 @@ interface TrustDocument {
     activated_at: string;
     expires_at?: string;
   }>;
-  signature: string;  // Ed25519 signature from official marketplace
+  signature: string;  // Ed25519 signature from official listing
 }
 ```
 
@@ -387,9 +387,9 @@ export async function verifyEd25519(signature, keyId, trustDoc) {
 
 ---
 
-## 13. Definition of Done (Official Marketplace Specific)
+## 13. Definition of Done (Official Listing Specific)
 
-- [x] Official marketplace frontend accessible (static, deployed)
+- [x] Official listing frontend accessible (static, deployed)
 - [x] Repository registration works (via static form)
 - [x] Product verification works
 - [x] Release indexing works (via CI)
@@ -397,12 +397,97 @@ export async function verifyEd25519(signature, keyId, trustDoc) {
 - [x] Payment integration works (Stripe Connect)
 - [x] Licenses issued correctly
 - [x] Pricing policy file (pricing.json) served from CDN
-- [x] Public marketplace registration works (static form)
+- [x] Public listing registration works (static form)
 - [x] Settlement records created correctly
-- [x] Marketplace CLI works against static files
+- [x] Listing CLI works against static files
 - [x] All tests pass
 - [ ] Documentation complete
 - [ ] Security audit passes
 - [ ] Official signing key generated and secured
 - [ ] Key rotation mechanism tested
 - [x] Default domain: https://reposell.dev configured
+---
+
+## Protocol Evolution Implementation Plan (2026-08) — Decisions D10–D15
+
+Source specs: `TRACKING.md` (D11–D15) · protocol pages `listing-endpoint`, `listing-network`, `listing-registry`, `gamification`.
+Canonical deployment: **listing.reposell.dev** (static generated index). Production apex: **reposell.dev**.
+
+### A. Registry-as-git-repo (D13) — replaces API registration for products
+
+| File | Purpose |
+|------|---------|
+| `listings/<package>.json` | reference-only entries: `{"schema":"reposell-listing/v1","sell":"<url>"}` |
+| `.github/workflows/verify-pr.yml` | 12-step pipeline on every PR: schema → fetch /sell+manifest → HTTPS → GitHub repo → release↔manifest → signature → listing authorization → payment link → /health → PASS=auto-merge / FAIL=block with reason |
+| `.github/workflows/reverify.yml` | scheduled re-verification of ALL existing listings (new releases, manifest/payment/health drift) → updates entries + regenerates index; no PR needed for updates |
+| `scripts/generate-index.ts` | builds static Listing JSON + catalog pages from verified `listings/*.json` |
+
+### A2. Contribution link creation (D16) — CI-only Stripe integration
+
+- `REPOSELL_STRIPE_SECRET_KEY` lives ONLY in this repo's Actions secrets — never in seller repos, logs, PR comments, generated JSON, or frontend
+- verify-pr pipeline extension: after standard checks, read `pricing.listing.contribution` from the seller manifest → create Stripe Product + Price + Payment Link (Reposell account) → verify created link → commit release record to PR
+- **FREE vs PAID branch (D18)**: `pricing.type: "free"` → skip ALL seller payment-link verification (nothing to check; release = direct access); `type: "paid"` → full link↔price/currency verification as below. Contribution link creation applies to BOTH types (free projects may accept donations via contribution)
+- **IDEMPOTENCY MANDATORY**: search by deterministic identifiers (repository · release · manifest hash · contribution · publication ID) before creating — reruns/retries must never duplicate Stripe objects
+- Data layout: `listing/repositories/<owner>/<project>/manifest.json` + `releases/vX.Y.Z.json` — each release JSON embeds its own pricing type, contribution + immutable Payment Link (if any) + verification metadata + signature
+- NEVER delete/replace/deactivate a release's payment link; historical releases stay purchasable; health status never mutates links
+- Frontend dual CTA on paid: "Buy from seller" (/sell) vs "Support Reposell / buy through listing" (contribution link); free releases render a single [Fork] CTA — never imply Reposell owns the software
+
+### F. Test strategy (D16 flow — three levels + golden test)
+
+1. **Local**: `act pull_request --secret-file .secrets.test` (`sk_test_…` only, never live) — catches YAML/shell/env/manifest/JSON/signature/Stripe/idempotency issues before push
+2. **Real PR fixtures** (`reposell-fixtures` repo): `valid/ · invalid-signature/ · invalid-sell-link/ · missing-payment-link/ · invalid-price/ · unhealthy/ · old-release/ · duplicate-release/ · changed-contribution/` → actual PRs into a test listing repo running the real pipeline
+3. **Stripe Test Mode**: `REPOSELL_STRIPE_SECRET_KEY=sk_test_…` as repo secret; CI creates real test Product/Price/Payment Link that can be opened and paid with test cards
+
+Mandatory suites:
+
+- **Complete publication**: every check green incl. "Stripe Product created / Price created / Listing Payment Link created+verified / JSON generated"
+- **Idempotency**: run CI twice on same release → exactly one Stripe link (second run reuses via deterministic-ID search)
+- **Release immutability**: publish v0.1.0 ($5) then v0.2.0 ($10) → Link A untouched and active, both purchasable
+- **Negative matrix**: bad signature / missing payment_link / price mismatch / 404 /sell / failing /health / negative contribution / duplicate release → BLOCKED; retry-of-same-publication → PASS reusing record
+- **Serverless proof**: after merge assert `listing/repositories/<owner>/<repo>/releases/*.json` exists and frontend renders from static files with zero API calls
+- **Golden E2E**: seller release → CLI → PR → CI verify+create → merge → frontend displays → Stripe test checkout ✓
+
+Workflows: `listing.yml` (pipeline) · `listing-tests.yml` (manifest/signature/health/payment/Stripe/idempotency/immutability/schema; gated on `STRIPE_TEST_MODE=true`) · `release-tests.yml`
+
+### B. Static frontend at listing.reposell.dev (D15)
+
+- Reads generated Listing JSON (product metadata, repository, release, /sell, payment info, last CI verification)
+- Product pages (`/foo`) perform LIVE client-side GET to the owner's `/health` — render "verified then" vs "healthy now" side by side
+- Principle enforced in UI copy: listing discovers and verifies; it never hosts or sells
+
+### C. Gamification layer (D14) — serverless, manifests + CI only
+
+| File | Purpose |
+|------|---------|
+| `events/*.json` | signed append-only XP ledger written exclusively by CI workflows (PR merges, health sweeps, release validation) |
+| `.github/workflows/ledger.yml` | validates + signs events, regenerates profiles/leaderboards/badges as static artifacts |
+| Publisher/curator/buyer XP tables per spec §3–5 · levels Explorer→Legend §6 · product reputation §7 |
+| Badge engine: objective VERIFIED badges (never purchasable/XP) vs reputation badges — hard separation §9 |
+| Streaks from automated /health sweeps with grace period §10 · quests §12 · seasons §13 · per-actor leaderboards §14 |
+| Anti-gaming: diminishing rewards, daily/weekly caps, unique-action rules, anti-self-dealing, refund→XP reversal §15–16 |
+| Lifetime XP never decays; separate current-reputation score §16 · trust tiers ≠ XP §17 |
+
+### D. Federation services (D11/D12)
+
+- Operator registration endpoint for community listings (identity/domain/key verification → authorize federation)
+- Catalog sync feed (signed) consumed by public listings
+- Referral attribution: outbound links carry listing attribution; community economics derive from the CONTRIBUTION model (D16), not checkout splits
+- Signed pricing-policy endpoint: superseded by contribution model (D16) — retain only if a signed network-configuration endpoint is still needed
+
+### E. Signed network configuration (D10/D13 — serverless form per D16)
+
+- NO pricing endpoint, NO `/api/*`, NO API server — checkout-fee splitting is superseded (D16) and Listing revenue flows from per-release CONTRIBUTION Payment Links created by CI (see A2)
+- If any network-wide configuration is ever needed, it ships as **signed JSON files committed to the listing registry** (`config/*.json` + `signature.json`), consumed via the federation feed and verified with the official public key
+- Community listings verify those files independently; no fallback values anywhere; no service to run or call
+
+### F. Deferred backend phases (unchanged from earlier plan)
+
+Purchases/settlement/license-issuance services remain future phases; direct sales flow through seller Payment Links without any listing backend.
+
+### Tests required
+
+verify-pipeline integration tests (fixture repos + fixture /sell hosts) · auto-merge/blocking logic · index generator determinism · ledger signature validation · XP caps/diminishing/fraud-reversal unit tests · pricing policy signature round-trip
+
+### CI requirements
+
+PR gate MUST fail closed on any verification error · scheduled jobs pinned and authenticated · secrets via Actions secrets only · workflow owns registry paths only

@@ -1,0 +1,29 @@
+{
+  "hash": "73e77331",
+  "browserHash": "4ef2bbe1",
+  "optimized": {
+    "vue": {
+      "src": "../../../../node_modules/vue/dist/vue.runtime.esm-bundler.js",
+      "file": "vue.js",
+      "fileHash": "42df821f",
+      "needsInterop": false
+    },
+    "animejs": {
+      "src": "../../../../../../node_modules/animejs/dist/modules/index.js",
+      "file": "animejs.js",
+      "fileHash": "7e6800b0",
+      "needsInterop": false
+    },
+    "ogl": {
+      "src": "../../../../../../node_modules/ogl/src/index.js",
+      "file": "ogl.js",
+      "fileHash": "4d5e5b05",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-SSYGV25P": {
+      "file": "chunk-SSYGV25P.js"
+    }
+  }
+}
