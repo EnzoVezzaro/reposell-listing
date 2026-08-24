@@ -129,9 +129,9 @@ description: Discover software sold straight from the source. Every listing cryp
 
   <section id="jump" class="lx-section">
     <div class="lx-links">
-      <a class="lx-link" href="/docs/protocol/listing-registry"><strong>Listing registry</strong><span>The PR format and verification pipeline.</span></a>
-      <a class="lx-link" href="/docs/protocol/signatures"><strong>Signatures</strong><span>Ed25519 verification against the official key.</span></a>
-      <a class="lx-link" href="/docs/protocol/sell-endpoint"><strong>/sell endpoint</strong><span>What sellers publish and how it's checked.</span></a>
+      <a class="lx-link" href="/protocol/listing-registry"><strong>Listing registry</strong><span>The PR format and verification pipeline.</span></a>
+      <a class="lx-link" href="/protocol/signatures"><strong>Signatures</strong><span>Ed25519 verification against the official key.</span></a>
+      <a class="lx-link" href="/protocol/sell-endpoint"><strong>/sell endpoint</strong><span>What sellers publish and how it's checked.</span></a>
       <a class="lx-link" href="https://github.com/EnzoVezzaro/reposell-listing"><strong>Registry repository</strong><span>The registry is a public Git repo.</span></a>
     </div>
   </section>
@@ -149,10 +149,10 @@ description: Discover software sold straight from the source. Every listing cryp
       <nav class="lx-fcol" aria-label="Protocol">
         <h4>Protocol</h4>
         <ul>
-          <li><a href="/docs/protocol/listing-registry">Listing registry</a></li>
+          <li><a href="/protocol/listing-registry">Listing registry</a></li>
           <li><a href="/docs/protocol/manifest-schema">Manifest schema</a></li>
-          <li><a href="/docs/protocol/signatures">Signatures</a></li>
-          <li><a href="/docs/protocol/sell-endpoint">/sell endpoint</a></li>
+          <li><a href="/protocol/signatures">Signatures</a></li>
+          <li><a href="/protocol/sell-endpoint">/sell endpoint</a></li>
         </ul>
       </nav>
       <nav class="lx-fcol" aria-label="Trust">
