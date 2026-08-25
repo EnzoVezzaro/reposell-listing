@@ -29,6 +29,8 @@ jobs:
         run: |
           npm ci
           npm run docs:build
+      - name: Add CNAME
+        run: echo "listing.reposell.dev" > docs/docs/.vitepress/dist/CNAME
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
