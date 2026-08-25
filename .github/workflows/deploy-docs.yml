@@ -1,8 +1,6 @@
 name: deploy docs
 
 on:
-  push:
-    branches: [main, master]
   workflow_dispatch:
 
 permissions:
@@ -30,10 +28,10 @@ jobs:
           npm ci
           npm run docs:build
       - name: Add CNAME
-        run: echo "listing.reposell.dev" > docs/docs/.vitepress/dist/CNAME
+        run: echo "listing.reposell.dev" > docs/.vitepress/dist/CNAME
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/docs/.vitepress/dist
+          path: docs/.vitepress/dist
       - id: deployment
         uses: actions/deploy-pages@v4
