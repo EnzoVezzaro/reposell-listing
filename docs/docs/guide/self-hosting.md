@@ -11,7 +11,7 @@ Want to run your own listing — themed, curated, regional, language-specific? T
 
 Start from the public reference implementation:
 
-**[github.com/EnzoVezzaro/reposell-listing-public](https://github.com/EnzoVezzaro/reposell-listing-public)**
+**[github.com/EnzoVezzaro/reposell-community-listing](https://github.com/EnzoVezzaro/reposell-community-listing)**
 
 It ships the complete serverless stack: the PR-based registry, the CI verification workflows, the static catalog generator and the deployment configuration. Fork it, configure it, deploy it — no servers required, same as the official one.
 
