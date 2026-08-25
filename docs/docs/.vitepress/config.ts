@@ -52,11 +52,4 @@ export default defineConfig({
     theme: 'github-dark',
     lineNumbers: true,
   },
-  vite: {
-    resolve: {
-      alias: {
-        '@reposell/design-system': '../../../../branding',
-      },
-    },
-  },
 })

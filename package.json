@@ -3,14 +3,12 @@
   "version": "0.1.0",
   "description": "The official reposell discovery directory \u2014 registry, verification CI, and discovery payments",
   "type": "module",
-  "main": "index.js",
   "scripts": {
+    "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
-    "acc:check": "acc check",
-    "oxlint": "oxlint",
     "docs:dev": "vitepress dev docs/docs",
     "docs:build": "vitepress build docs/docs",
     "docs:preview": "vitepress preview docs/docs"

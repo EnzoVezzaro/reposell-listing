@@ -1,64 +1,35 @@
 # reposell Listing (Official)
 
-The official reposell listing is the authoritative listing service for the reposell protocol. It provides product discovery, repository registration, product verification, release indexing, purchase system, payment integration, license system, pricing policy service, signature authority, public listing registration, and settlement system.
+The official reposell listing — a static discovery directory with verification CI and discovery payments.
+
+## Features
+
+- **Product discovery** — browse and search products across registered repositories
+- **Repository registration** — verify and index `/listing` manifests
+- **Release indexing** — auto-detect new releases from Git tags
+- **Stripe Embedded Checkout** — payment UI in the browser, no redirect
+- **Stripe Connect** — automatic revenue split to sellers
+- **Signed pricing policy** — cryptographically verified fee structure
+- **License system** — repository access via GitHub fork on purchase
+- **Settlement & reporting** — automated revenue distribution
 
 ## Quickstart
 
 ```bash
-# Deploy the listing (Static frontend on Vercel/Netlify/Cloudflare Pages)
-# Register a public listing instance via static form or CLI
+npm install
+npm run dev
 ```
-
-## Core Services (Static Files)
-
-| Service | File | Description |
-|---------|------|-------------|
-| Pricing Policy | `pricing.json` | Signed pricing policy |
-| Trust Document | `trust.json` | Key rotation metadata |
-| Verification Key | `config/reposell/verification-key.pub` | Official Ed25519 public key |
-
-## Features
-
-- **Product discovery & search** - Browse and search products across registered repositories
-- **Repository registration** - Verify and index `/listing` manifests
-- **Release indexing** - Auto-detect new releases from Git tags
-- **Stripe Embedded Checkout** - Payment UI in the browser, no redirect
-- **Stripe Connect** - Automatic revenue split to sellers
-- **Signed pricing policy** - Cryptographically verified fee structure
-- **License system** - Repository access via GitHub fork on purchase
-- **Public listing registration** - Community instances register via static form
-- **Settlement & reporting** - Automated revenue distribution
-
-## Payment Integration
-
-Uses **Stripe Embedded Checkout** with **Stripe Connect** - no backend server required. The listing renders Stripe's checkout UI; checkout sessions created via Stripe.js with Connect destination charges for automatic revenue splitting.
-
-## Default Domain
-
-All references use `https://reposell.dev` as the default domain:
-
-- **Pricing Policy**: `https://reposell.dev/pricing.json`
-- **Trust Document**: `https://reposell.dev/trust.json`
-- **Verification Key**: `https://reposell.dev/config/reposell/verification-key.pub`
 
 ## Documentation
 
-- [Protocol](docs/protocol.md)
-- [Pricing Policy](docs/pricing.md)
-- [Signatures](docs/signatures.md)
-- [Listing Registration](docs/listing-registration.md)
-- [Payment Architecture](docs/payment-architecture.md)
-- [Development](docs/development.md)
-- [Deployment](docs/deployment.md)
-- [Security](docs/security.md)
-- [Troubleshooting](docs/troubleshooting.md)
+The docs site is built with VitePress:
 
-## Support
-
-If reposell helps you, consider [sponsoring @EnzoVezzaro](https://github.com/sponsors/EnzoVezzaro) — the goal is to work on open source full time.
-
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?logo=github&style=flat-square)](https://github.com/sponsors/EnzoVezzaro)
+```bash
+npm run docs:dev      # local dev server
+npm run docs:build    # production build
+npm run docs:preview  # preview production build
+```
 
 ## License
 
-MIT - see [LICENSE](LICENSE) for details.
+MIT
