@@ -176,7 +176,14 @@ describe('discovery Stripe automation (§6-§7)', () => {
     // §19 negative-proof: seller price $100 never appears; discovery is 500 cents.
     expect(priceCall?.body['unit_amount']).toBe('500');
     expect(priceCall?.body['metadata[purpose]']).toBe('discovery');
-    expect(JSON.stringify(created)).not.toContain('1000');
+    // Precise negative-proof: no amount field anywhere carries the seller's
+    // 1000 cents (raw substring checks false-positive on tax_code ids).
+    const amounts = created.flatMap((call) =>
+      Object.entries(call.body)
+        .filter(([key]) => key.includes('amount') || key === 'unit_amount')
+        .map(([, value]) => value),
+    );
+    expect(amounts).not.toContain('1000');
     expect(JSON.stringify(created)).not.toContain('SELLER_LINK');
   });
 

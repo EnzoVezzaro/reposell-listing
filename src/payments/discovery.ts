@@ -127,11 +127,24 @@ export async function ensureDiscoveryLink(input: {
     };
   }
 
-  const product = await stripeRequest(fetchImpl, apiKey, 'POST', 'products', {
-    name,
-    ...metadataFields(link),
-  });
-  const productId = product.id;
+  // Reuse a product left behind by a partial previous run instead of
+  // stacking same-name duplicates. tax_code is required by Managed
+  // Payments accounts before a product can enter a Payment Link;
+  // txcd_10000000 ("General — Everything Else") is the universal catch-all.
+  let productId = existing?.id;
+  if (productId === undefined) {
+    const created = await stripeRequest(fetchImpl, apiKey, 'POST', 'products', {
+      name,
+      tax_code: 'txcd_10000000',
+      ...metadataFields(link),
+    });
+    productId = created.id;
+  } else {
+    // Partial-run leftovers may predate tax_code — backfill before use.
+    await stripeRequest(fetchImpl, apiKey, 'POST', `products/${productId}`, {
+      tax_code: 'txcd_10000000',
+    });
+  }
   if (productId === undefined) throw new Error('Stripe product creation returned no id');
 
   const price = await stripeRequest(fetchImpl, apiKey, 'POST', 'prices', {

@@ -20,17 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
+          bun-version: latest
 
       - name: Install deps
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       # §17: the Listing Stripe secret exists ONLY here, as an Actions
       # secret. It is never committed, logged, or exposed to PRs.
       - name: Ensure immutable discovery links
-        run: node scripts/discovery-sync.mjs
+        run: bun scripts/discovery-sync.mjs
         env:
           LISTING_STRIPE_SECRET_KEY: ${{ secrets.LISTING_STRIPE_SECRET_KEY }}
 

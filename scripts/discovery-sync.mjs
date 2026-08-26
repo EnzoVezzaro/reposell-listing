@@ -11,7 +11,15 @@ import process from 'node:process';
 import { ensureDiscoveryLink } from '../src/payments/discovery.js';
 
 const dir = path.resolve('listing');
-const files = (await readdir(dir)).filter((file) => file.endsWith('.json') && !file.endsWith('.pr.json'));
+let files = [];
+try {
+  files = (await readdir(dir)).filter((file) => file.endsWith('.json') && !file.endsWith('.pr.json'));
+} catch {
+  // No registry directory yet — nothing to provision, still a success so
+  // scheduled/manual runs stay green before the first Listing PR merges.
+  console.log('listing/ not found — no registry records to provision.');
+  process.exit(0);
+}
 
 for (const file of files) {
   const full = path.join(dir, file);

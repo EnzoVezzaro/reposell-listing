@@ -19,12 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
+          bun-version: latest
 
       - name: Install deps
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Extract PR payload
         run: |
@@ -32,7 +32,7 @@ jobs:
           echo "PR_FILE=$PR_FILE" >> "$GITHUB_ENV"
 
       - name: Run 12-step verification
-        run: node scripts/verify-pr.mjs "$PR_FILE"
+        run: bun scripts/verify-pr.mjs "$PR_FILE"
         env:
           # Read-only verification needs NO Stripe secret (§17). Discovery
           # link creation happens only AFTER merge, in discovery-sync.yml.
