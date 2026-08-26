@@ -12,12 +12,24 @@ export const REGISTRY_SCHEMA = 'reposell-listing-record/v1';
 
 export interface ListingRecord {
   schema: typeof REGISTRY_SCHEMA;
-  product: { repository: string; release: string; commit?: string };
+  product: {
+    repository: string;
+    release: string;
+    commit?: string;
+    description?: string;
+    /** Repository price (from the seller's reposell.yml offers). */
+    price?: number;
+    currency?: string;
+    /** License scheme name (e.g. "RSL-1.0"). */
+    license?: string;
+  };
   seller: { sell_url: string; payment_link: string };
   listing: {
     discovery_price: { amount: number; currency: string };
     stripe: { payment_link_id: string; price_id: string; product_id: string };
   };
+  /** Tags for filtering (e.g. ["reposell", "example"]). */
+  tags?: string[];
   /** README markdown — fetched by the CLI from the seller's repo during publish. */
   readme?: string;
 }

@@ -29,6 +29,11 @@ try {
         payment_link_error: record.listing?.stripe?.payment_link_error ?? null,
         amount: record.listing?.discovery_price?.amount ?? null,
         currency: record.listing?.discovery_price?.currency ?? '',
+        // Seller's repo price from the original listing payload
+        repo_price: record.product?.price ?? null,
+        repo_currency: record.product?.currency ?? '',
+        license: record.product?.license ?? '',
+        tags: record.tags ?? [],
         community: record.community ?? null,
         readme: record.readme ?? null,
       };

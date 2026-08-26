@@ -74,15 +74,24 @@ export function promotePrPayload(pr: unknown): PendingListingRecord {
   }
 
   const commit = payload.release.commit;
-  const readme = typeof (payload as Record<string, unknown>)['readme'] === 'string'
-    ? String((payload as Record<string, unknown>)['readme'])
-    : undefined;
+  const raw = payload as Record<string, unknown>;
+  const readme = typeof raw['readme'] === 'string' ? String(raw['readme']) : undefined;
+  const description = typeof raw['description'] === 'string' ? String(raw['description']) : undefined;
+  const repoPrice = typeof raw['price'] === 'number' ? Number(raw['price']) : undefined;
+  const repoCurrency = typeof raw['currency'] === 'string' ? String(raw['currency']) : undefined;
+  const license = typeof raw['license'] === 'string' ? String(raw['license']) : undefined;
+  const tags = Array.isArray(raw['tags']) ? (raw['tags'] as unknown[]).filter((t): t is string => typeof t === 'string') : undefined;
+
   return {
     schema: REGISTRY_SCHEMA,
     product: {
       repository: `${payload.repository.owner}/${payload.repository.name}`,
       release: String(payload.release.version),
       ...(text(commit) ? { commit: String(commit) } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(repoPrice !== undefined ? { price: repoPrice } : {}),
+      ...(repoCurrency !== undefined ? { currency: repoCurrency } : {}),
+      ...(license !== undefined ? { license } : {}),
     },
     seller: {
       sell_url: String(payload.sell.url),
@@ -91,6 +100,7 @@ export function promotePrPayload(pr: unknown): PendingListingRecord {
     listing: {
       discovery_price: { amount: price.amount, currency: String(price.currency) },
     },
+    ...(tags !== undefined && tags.length > 0 ? { tags } : {}),
     ...(readme !== undefined ? { readme } : {}),
   };
 }

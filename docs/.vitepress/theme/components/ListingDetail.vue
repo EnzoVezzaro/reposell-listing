@@ -325,8 +325,11 @@ onMounted(async () => {
         <div class="ld-detail-badges">
           <span class="ld-badge ld-badge--release">{{ listing.release }}</span>
           <span v-if="listing.id" class="ld-badge ld-badge--id">{{ listing.id }}</span>
+          <span v-for="tag in (listing.tags || [])" :key="tag" class="ld-badge ld-badge--tag">{{ tag }}</span>
         </div>
       </div>
+
+      <p v-if="listing.description" class="ld-repo-desc">{{ listing.description }}</p>
 
       <div class="ld-detail-links">
         <a :href="githubUrl" target="_blank" rel="noopener" class="ld-link">
@@ -464,8 +467,18 @@ onMounted(async () => {
           <dd><a :href="githubUrl" target="_blank" rel="noopener">{{ listing.repository }}</a></dd>
           <dt>Release</dt>
           <dd>{{ listing.release }}</dd>
+          <dt v-if="listing.repo_price">Price</dt>
+          <dd v-if="listing.repo_price">{{ money(listing.repo_price, listing.repo_currency) }} <span class="ld-meta-note">(seller's license price)</span></dd>
+          <dt v-if="listing.license">License</dt>
+          <dd v-if="listing.license">{{ listing.license }}</dd>
           <dt>Discovery contribution</dt>
           <dd>{{ money(listing.amount, listing.currency) }} <span class="ld-meta-note">(buyer-paid, on top of seller's price)</span></dd>
+          <template v-if="listing.tags && listing.tags.length > 0">
+            <dt>Tags</dt>
+            <dd>
+              <span v-for="tag in listing.tags" :key="tag" class="ld-badge ld-badge--tag">{{ tag }}</span>
+            </dd>
+          </template>
           <template v-if="discussionNumber">
             <dt>Discussion</dt>
             <dd><a :href="discussionUrl" target="_blank" rel="noopener">#{{ discussionNumber }}</a></dd>
@@ -489,6 +502,7 @@ onMounted(async () => {
 .ld-badge { font-family: var(--vp-font-family-mono); font-size: 0.78rem; border: 1px solid var(--vp-c-divider); border-radius: 999px; padding: 0.15rem 0.65rem; white-space: nowrap; }
 .ld-badge--release { background: var(--vp-c-bg-soft); }
 .ld-badge--id { color: var(--vp-c-text-2); }
+.ld-badge--tag { background: var(--vp-c-brand-soft); color: var(--vp-c-brand-1); }
 
 .ld-detail-links { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
 .ld-link { color: var(--vp-c-brand-1); font-size: 0.9rem; text-decoration: none; }
