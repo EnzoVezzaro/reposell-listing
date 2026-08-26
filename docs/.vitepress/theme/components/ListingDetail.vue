@@ -36,6 +36,10 @@ let pollTimer = null
 // --- payment ---
 const contributionPaid = ref(false)
 
+// Payment link validity — set from listing record
+const paymentLinkActive = computed(() => listing.value?.payment_link_active !== false)
+const paymentLinkError = computed(() => listing.value?.payment_link_error ?? null)
+
 function proxyFetch(url, options) {
   return fetch(`${CORS_PROXY}${encodeURIComponent(url)}`, options)
 }
@@ -323,7 +327,7 @@ onMounted(async () => {
               their license revenue.
             </p>
             <a
-              v-if="listing.payment_link && ghConnected && !contributionPaid"
+              v-if="listing.payment_link && ghConnected && !contributionPaid && paymentLinkActive"
               :href="paymentUrl"
               class="ld-btn ld-btn--primary"
               rel="nofollow noopener"
@@ -336,6 +340,9 @@ onMounted(async () => {
             >
               Paid {{ money(listing.amount, listing.currency) }} contribution ✓
             </span>
+            <p v-if="listing.payment_link && ghConnected && !contributionPaid && !paymentLinkActive" class="ld-step-hint ld-warning">
+              ⚠ Payment link is currently unavailable. Please try again later.
+            </p>
             <p v-if="!ghConnected" class="ld-step-hint">
               Connect your GitHub account above to proceed with payment.
             </p>
@@ -354,17 +361,20 @@ onMounted(async () => {
               v-if="listing.sell_url"
               :href="listing.sell_url"
               class="ld-btn ld-btn--secondary"
-              :class="{ 'ld-btn--disabled': !contributionPaid }"
-              :aria-disabled="!contributionPaid"
-              :tabindex="contributionPaid ? 0 : -1"
+              :class="{ 'ld-btn--disabled': !contributionPaid || !paymentLinkActive }"
+              :aria-disabled="!contributionPaid || !paymentLinkActive"
+              :tabindex="contributionPaid && paymentLinkActive ? 0 : -1"
               target="_blank"
               rel="noopener"
-              @click="contributionPaid ? null : $event.preventDefault()"
+              @click="contributionPaid && paymentLinkActive ? null : $event.preventDefault()"
             >
               Go to seller's storefront →
             </a>
-            <p v-if="!contributionPaid" class="ld-step-hint">
+            <p v-if="!contributionPaid && paymentLinkActive" class="ld-step-hint">
               To buy &amp; fork this, you need to pay the listing fee above.
+            </p>
+            <p v-if="!paymentLinkActive" class="ld-step-hint ld-warning">
+              ⚠ Payment link is currently unavailable. Please try again later.
             </p>
           </li>
         </ol>
@@ -445,6 +455,7 @@ onMounted(async () => {
 .ld-step-title { font-weight: 600; font-size: 1rem; }
 .ld-step-desc { color: var(--vp-c-text-2); font-size: 0.92rem; line-height: 1.6; margin: 0 0 0.8rem 2.2rem; }
 .ld-step-hint { font-size: 0.82rem; color: var(--vp-c-text-3); margin: 0.4rem 0 0 2.2rem; font-style: italic; }
+.ld-step-hint.ld-warning { color: var(--vp-c-danger-1); font-style: normal; font-weight: 500; }
 
 .ld-btn { display: inline-block; font-size: 0.88rem; font-weight: 600; text-decoration: none; border-radius: 8px; padding: 0.5rem 1.1rem; margin-left: 2.2rem; cursor: pointer; border: none; }
 .ld-btn:hover { opacity: 0.9; text-decoration: none; }

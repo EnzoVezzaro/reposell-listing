@@ -101,3 +101,50 @@ for (const file of refreshed) {
   await writeFile(full, `${JSON.stringify(record, null, 2)}\n`);
   console.log(`✓ ${file}: discovery link ${link.payment_link_id} (${link.payment_link_url})`);
 }
+
+// ── Phase 3: validate all payment links are active ──
+const allRecords = (await readdir(dir)).filter((file) => file.endsWith('.json') && !file.endsWith('.pr.json'));
+const apiKey = process.env['LISTING_STRIPE_SECRET_KEY'];
+
+if (apiKey !== undefined) {
+  let hasInvalid = false;
+  for (const file of allRecords) {
+    const full = path.join(dir, file);
+    const record = JSON.parse(await readFile(full, 'utf8'));
+    const linkId = record.listing?.stripe?.payment_link_id;
+    if (linkId === undefined) continue;
+
+    const { validatePaymentLink } = await import('../src/payments/discovery.js');
+    const result = await validatePaymentLink({
+      apiKey,
+      paymentLinkId: linkId,
+      fetchImpl: (url, init) =>
+        fetch(url, init).then((res) => ({
+          ok: res.ok,
+          status: res.status,
+          json: () => res.json(),
+        })),
+    });
+
+    if (!result.valid) {
+      console.error(`✗ ${file}: payment link ${linkId} is INVALID — ${result.reason}`);
+      // Mark the record so the frontend can warn users
+      record.listing.stripe.payment_link_active = false;
+      record.listing.stripe.payment_link_error = result.reason;
+      await writeFile(full, `${JSON.stringify(record, null, 2)}\n`);
+      hasInvalid = true;
+    } else {
+      // Ensure the flag is cleared if the link is valid
+      if (record.listing?.stripe?.payment_link_active === false) {
+        delete record.listing.stripe.payment_link_active;
+        delete record.listing.stripe.payment_link_error;
+        await writeFile(full, `${JSON.stringify(record, null, 2)}\n`);
+        console.log(`✓ ${file}: payment link ${linkId} is now active again`);
+      }
+    }
+  }
+
+  if (hasInvalid) {
+    console.warn('⚠ Some payment links are invalid — listings may be blocked on the frontend.');
+  }
+}

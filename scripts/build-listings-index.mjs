@@ -25,6 +25,8 @@ try {
         description: record.product?.description ?? '',
         sell_url: record.seller?.sell_url ?? '',
         payment_link: record.listing?.stripe?.payment_link_url ?? record.seller?.payment_link ?? '',
+        payment_link_active: record.listing?.stripe?.payment_link_active !== false,
+        payment_link_error: record.listing?.stripe?.payment_link_error ?? null,
         amount: record.listing?.discovery_price?.amount ?? null,
         currency: record.listing?.discovery_price?.currency ?? '',
         community: record.community ?? null,

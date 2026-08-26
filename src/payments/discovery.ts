@@ -43,6 +43,34 @@ export class DiscoverySecretError extends Error {
   }
 }
 
+/**
+ * Validates that a Stripe payment link is active and reachable.
+ * Returns { valid: true } or { valid: false, reason: string }.
+ */
+export async function validatePaymentLink(input: {
+  apiKey: string;
+  paymentLinkId: string;
+  fetchImpl: StripeFetchLike;
+}): Promise<{ valid: true } | { valid: false; reason: string }> {
+  const { apiKey, paymentLinkId, fetchImpl } = input;
+  try {
+    const res = await fetchImpl(`https://api.stripe.com/v1/payment_links/${paymentLinkId}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) {
+      return { valid: false, reason: `Stripe API returned HTTP ${res.status}` };
+    }
+    const data = await res.json() as { active?: boolean; url?: string };
+    if (data.active === false) {
+      return { valid: false, reason: 'Payment link is deactivated in Stripe' };
+    }
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, reason: `Could not reach Stripe: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
 interface StripeMetadata {
   discovery_payment_link_id?: string;
   discovery_price_id?: string;
