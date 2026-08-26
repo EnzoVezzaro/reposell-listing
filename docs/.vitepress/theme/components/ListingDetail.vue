@@ -352,14 +352,14 @@ onMounted(async () => {
             </p>
             <a
               v-if="listing.sell_url"
-              :href="listing.sell_url"
+              :href="contributionPaid ? listing.sell_url : '#'"
               class="ld-btn ld-btn--secondary"
               :class="{ 'ld-btn--disabled': !contributionPaid }"
               :aria-disabled="!contributionPaid"
               :tabindex="contributionPaid ? 0 : -1"
-              target="_blank"
+              :target="contributionPaid ? '_blank' : '_self'"
               rel="noopener"
-              @click.prevent="contributionPaid ? undefined : null"
+              @click.prevent="!contributionPaid"
             >
               Go to seller's storefront →
             </a>
