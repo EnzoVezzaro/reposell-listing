@@ -1,0 +1,17 @@
+{
+  "schema": "reposell-listing-record/v1",
+  "product": {
+    "repository": "EnzoVezzaro/reposell-example",
+    "release": "v0.1.0"
+  },
+  "seller": {
+    "sell_url": "https://EnzoVezzaro.github.io/reposell-example/sell/",
+    "payment_link": "https://buy.stripe.com/test_4gMeVebjL0jI3Ee0BHfrW01"
+  },
+  "listing": {
+    "discovery_price": {
+      "amount": 5,
+      "currency": "USD"
+    }
+  }
+}
