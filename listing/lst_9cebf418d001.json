@@ -1,7 +1,7 @@
 {
   "listing": {
     "discovery_price": {
-      "amount": "5",
+      "amount": 5,
       "currency": "USD"
     }
   },
@@ -19,5 +19,5 @@
     "repository": "EnzoVezzaro/reposell-example",
     "sell_path": "/sell"
   },
-  "published_at": "2026-08-26T12:36:17.511Z"
+  "published_at": "2026-08-26T12:41:50.753Z"
 }
