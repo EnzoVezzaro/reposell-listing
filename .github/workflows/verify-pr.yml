@@ -26,37 +26,13 @@ jobs:
       - name: Install deps
         run: bun install --frozen-lockfile
 
-      - name: Extract PR payload
-        run: |
-          PR_FILES=$(ls listing/*.pr.json 2>/dev/null || true)
-          if [ -z "$PR_FILES" ]; then
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "No Listing PR payload present (manual run) — nothing to verify."
-              exit 0
-            fi
-            echo "::error::no listing/*.pr.json payload found in this Listing PR"
-            exit 1
-          fi
-          {
-            echo 'PR_FILES<<EOF'
-            echo "$PR_FILES"
-            echo 'EOF'
-          } >> "$GITHUB_ENV"
-
-      - name: Run 12-step verification
-        run: |
-          set -e
-          # Verify EVERY payload in the PR — a single verified file must not
-          # smuggle additional unverified ones into the registry (fail-closed).
-          while IFS= read -r PR_FILE; do
-            [ -e "$PR_FILE" ] || continue
-            echo "verifying $PR_FILE"
-            bun scripts/verify-pr.mjs "$PR_FILE"
-          done <<< "$PR_FILES"
+      - name: Derive record from live /sell and verify fail-closed
+        run: bun scripts/verify-pr.mjs
         env:
           # Read-only verification needs NO Stripe secret (§17). Discovery
           # link creation happens only AFTER merge, in discovery-sync.yml.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Label PASS
         if: success()

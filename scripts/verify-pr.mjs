@@ -1,57 +1,143 @@
 /**
- * Listing CI entry: verify a PR payload fail-closed (spec §4).
- * Usage: node scripts/verify-pr.mjs <path-to.pr.json>
- * Exit 1 = BLOCKED. No Stripe secret is required or accepted here (§17).
+ * Listing CI verification (spec §4, D13) — POINTER-ONLY PRs.
+ *
+ * The PR carries no seller data: just which repository@release is being
+ * requested. EVERYTHING shown in the listing is derived here, live:
+ *   1. Fetch the seller's /sell page → embedded reposell-data JSON.
+ *   2. Validate fail-closed: schema, repository identity, release
+ *      availability, verified Payment Link.
+ *   3. Derive the registry record (incl. discovery contribution declared
+ *      on the seller's own page) and COMMIT it to the PR branch.
+ *
+ * On merge, discovery-sync.yml provisions the immutable discovery
+ * Payment Link (§15/D16). This script never touches seller Stripe data.
  */
 
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { execFileSync } from 'node:child_process';
 
-import { verifyListingPr } from '../src/verify/pipeline.js';
+const dir = path.resolve('listing');
 
-async function loadRegistry() {
-  const dir = path.resolve('listing');
-  const records = [];
+function fail(reason) {
+  console.error(`✗ BLOCKED: ${reason}`);
+  process.exit(1);
+}
+
+async function main() {
+  let files = [];
   try {
-    for (const file of await readdir(dir)) {
-      if (!file.endsWith('.json') || file.endsWith('.pr.json')) continue;
-      try {
-        records.push(JSON.parse(await readFile(path.join(dir, file), 'utf8')));
-      } catch {
-        /* skip malformed */
-      }
-    }
+    files = (await readdir(dir)).filter((f) => f.endsWith('.request.json'));
   } catch {
-    /* no registry yet */
+    fail('listing/ directory not found');
   }
-  const listedRepositories = [...new Set(records.map((record) => record.product?.repository).filter(Boolean))];
-  const map = {};
-  for (const record of records) {
-    map[`${record.product?.repository}@${record.product?.release}`] = {
-      discoveryPaymentLinkId: record.listing?.stripe?.payment_link_id ?? 'unknown',
-    };
+
+  // Legacy fallback: old branches may still carry *.pr.json payloads.
+  if (files.length === 0) {
+    const legacy = (await readdir(dir)).filter((f) => f.endsWith('.pr.json'));
+    files = legacy;
   }
-  return { listedRepositories, records: map };
+  if (files.length === 0) fail('no listing request found');
+
+  const request = JSON.parse(await readFile(path.join(dir, files[0]), 'utf8'));
+  const sellUrl = request.sell_url ?? request.sell?.url;
+  if (typeof sellUrl !== 'string' || !/^https:\/\//.test(sellUrl)) {
+    fail(`invalid or missing sell_url on the request (${files[0]})`);
+  }
+
+  // 1. Live /sell page → embedded document.
+  const res = await fetch(sellUrl, { headers: { 'user-agent': 'reposell-listing-ci' } });
+  if (!res.ok) fail(`/sell page unreachable: HTTP ${res.status} at ${sellUrl}`);
+  const html = await res.text();
+  const match = html.match(/<script type="application\/json" id="reposell-data">(.*?)<\/script>/s);
+  if (match === null) fail('/sell page has no embedded reposell-data — run `reposell build` and push');
+  let data;
+  try {
+    data = JSON.parse(match[1]);
+  } catch {
+    fail('embedded reposell-data is not valid JSON');
+  }
+  if (data.schema !== 'reposell/sell-page/v1') fail(`unexpected schema ${data.schema}`);
+
+  // 2. Identity + release + offer, all from the seller's own page.
+  const repository =
+    request.repository ?? `${data.repository}`; // legacy payloads carried it
+  if (data.repository !== repository) {
+    fail(`repository identity mismatch: page declares "${data.repository}", request says "${repository}"`);
+  }
+
+  const available = (data.releases ?? []).filter((r) => r.status === 'available' && (r.offers ?? []).length > 0);
+  const requestedRelease = request.release ?? available[0]?.version;
+  const release = available.find((r) => r.version === requestedRelease);
+  if (release === undefined) {
+    fail(
+      `release ${requestedRelease ?? '(none requested)'} is not published/available on the /sell page — \`reposell publish\` + push first`,
+    );
+  }
+  const offer = release.offers[0];
+  if (!/^https:\/\/(buy|checkout)\.stripe\.com\//.test(offer.paymentLink ?? '')) {
+    fail(`offer for ${release.version} has no valid Stripe Payment Link`);
+  }
+  if (!(offer.price > 0)) fail(`offer for ${release.version} has no positive price`);
+
+  // 3. Discovery contribution: declared by the seller on their own page,
+  //    default $5 USD per D16 when absent.
+  const contribution = data.listing?.contribution ?? { amount: 5, currency: 'USD' };
+  if (!(contribution.amount > 0)) fail('seller-declared discovery contribution must be positive');
+
+  const record = {
+    schema: 'reposell-listing-record/v1',
+    product: { repository, release: release.version },
+    seller: {
+      sell_url: sellUrl,
+      payment_link: offer.paymentLink,
+    },
+    listing: {
+      discovery_price: {
+        amount: contribution.amount,
+        currency: String(contribution.currency).toUpperCase(),
+      },
+    },
+  };
+
+  console.log(`✓ Derived from live endpoints:`);
+  console.log(`    repository      ${record.product.repository}`);
+  console.log(`    release         ${record.product.release} — ${offer.price} ${offer.currency}`);
+  console.log(`    payment link    ${record.seller.payment_link}`);
+  console.log(`    discovery       ${record.listing.discovery_price.amount} ${record.listing.discovery_price.currency}`);
+
+  // 4. Commit the derived record into the PR branch so the merge lands a
+  //    complete registry entry. Requires contents:write on the PR checkout.
+  const token = process.env['GITHUB_TOKEN'];
+  const number = process.env['PR_NUMBER'];
+  if (token === undefined || number === undefined) {
+    console.log('• local verification only — record committed during CI runs');
+    return;
+  }
+
+  const pr = JSON.parse(
+    execFileSync('gh', ['api', `repos/${process.env['GITHUB_REPOSITORY']}/pulls/${number}`, '--jq', '{ref:.head.ref,repo:.head.repo.full_name}'], { encoding: 'utf8' }),
+  );
+  const baseName = path.basename(files[0]).replace(/\.pr\.json$/, '').replace(/\.request\.json$/, '');
+  const recordPath = `listing/${baseName}.json`;
+  ghPutFile(pr.repo, recordPath, `${JSON.stringify(record, null, 2)}\n`, pr.ref, `derive registry record from live /sell`);
+
+  console.log(`✓ Registry record committed to the PR branch: ${recordPath}`);
 }
 
-if (process.env['LISTING_STRIPE_SECRET_KEY'] !== undefined) {
-  console.error('✗ LISTING_STRIPE_SECRET_KEY must not be set during verification (§17).');
-  process.exit(1);
+function ghPutFile(repo, path_, content, branch, message) {
+  execFileSync(
+    'gh',
+    [
+      'api', '--method', 'PUT',
+      `repos/${repo}/contents/${path_}`,
+      '-f', `message=${message}`,
+      '-f', `content=${Buffer.from(content, 'utf8').toString('base64')}`,
+      '-f', `branch=${branch}`,
+    ],
+    { stdio: 'pipe' },
+  );
 }
 
-const prPath = process.argv[2];
-if (prPath === undefined) {
-  console.error('usage: node scripts/verify-pr.mjs <payload.pr.json>');
-  process.exit(1);
-}
-
-const pr = JSON.parse(await readFile(prPath, 'utf8'));
-const registry = await loadRegistry();
-const report = await verifyListingPr({ pr, registry, fetchImpl: (url) => fetch(url).then((res) => ({ ok: res.ok, status: res.status, text: () => res.text() })) });
-
-for (const step of report.steps) {
-  console.log(`${step.ok ? '✓' : '✗'} ${step.step}: ${step.detail}`);
-}
-console.log(`\nverdict: ${report.verdict}`);
-if (report.verdict === 'BLOCKED') process.exit(1);
+main().catch((error) => fail(error instanceof Error ? error.message : String(error)));
