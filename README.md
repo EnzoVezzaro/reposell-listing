@@ -7,11 +7,10 @@ The official reposell listing — a static discovery directory with verification
 - **Product discovery** — browse and search products across registered repositories
 - **Repository registration** — verify and index `/listing` manifests
 - **Release indexing** — auto-detect new releases from Git tags
-- **Stripe Embedded Checkout** — payment UI in the browser, no redirect
-- **Stripe Connect** — automatic revenue split to sellers
+- **Discovery contribution** — per-release Payment Links created by CI (buyer-paid, seller keeps 100%)
 - **Signed pricing policy** — cryptographically verified fee structure
-- **License system** — repository access via GitHub fork on purchase
-- **Settlement & reporting** — automated revenue distribution
+- **Community Discussion** — GitHub Discussions per listing for buyer community
+- **Listing detail pages** — per-listing pages with repo info, two-step purchase flow
 
 ## Quickstart
 

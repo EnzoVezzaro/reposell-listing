@@ -58,6 +58,7 @@ onMounted(async () => {
           <span class="ld-release">{{ entry.release }}</span>
         </div>
         <div class="ld-meta">
+          <span v-if="entry.description" class="ld-desc">{{ entry.description }}</span>
           <span v-if="money(entry.amount, entry.currency)" class="ld-price">
             {{ money(entry.amount, entry.currency) }} <em>discovery contribution</em>
           </span>
@@ -79,7 +80,8 @@ onMounted(async () => {
 .ld-head { display: flex; align-items: baseline; justify-content: space-between; gap: .8rem; }
 .ld-repo { font-weight: 600; font-size: 1rem; word-break: break-all; }
 .ld-release { font-family: var(--vp-font-family-mono); font-size: .78rem; border: 1px solid var(--vp-c-divider); border-radius: 999px; padding: .1rem .6rem; white-space: nowrap; }
-.ld-meta { min-height: 1.2rem; }
+.ld-meta { min-height: 1.2rem; display: flex; flex-direction: column; gap: .3rem; }
+.ld-desc { font-size: .85rem; color: var(--vp-c-text-2); line-height: 1.4; }
 .ld-price { font-weight: 700; }
 .ld-price em { font-style: normal; font-weight: 400; color: var(--vp-c-text-2); font-size: .8rem; margin-left: .25rem; }
 .ld-actions { display: flex; gap: .6rem; flex-wrap: wrap; }

@@ -22,6 +22,7 @@ try {
         id: record.id ?? '',
         repository: record.product?.repository ?? '(unknown)',
         release: record.product?.release ?? '(unknown)',
+        description: record.product?.description ?? '',
         sell_url: record.seller?.sell_url ?? '',
         payment_link: record.seller?.payment_link ?? '',
         amount: record.listing?.discovery_price?.amount ?? null,
