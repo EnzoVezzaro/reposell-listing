@@ -3,11 +3,6 @@
     "discovery_price": {
       "amount": 5,
       "currency": "USD"
-    },
-    "stripe": {
-      "payment_link_id": "plink_1U8VmtLLTqvOlSTCu5cICim2",
-      "price_id": "price_1U8VmtLLTqvOlSTCAPDclSfB",
-      "product_id": "prod_V8nMvffsQvjYWs"
     }
   },
   "product": {
@@ -24,5 +19,5 @@
     "repository": "EnzoVezzaro/reposell-example",
     "sell_path": "/sell"
   },
-  "published_at": "2026-08-26T12:41:50.753Z"
+  "published_at": "2026-08-26T14:26:02.841Z"
 }
