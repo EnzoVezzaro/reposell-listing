@@ -10,6 +10,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
 
 const GITHUB_CLIENT_ID = 'Iv23lidhennqrdpdFUAT'
+const CORS_PROXY = 'https://corsproxy.io/?url='
 const GH_TOKEN_KEY = 'rs-listing-gh-token'
 const GH_USER_KEY = 'rs-listing-gh-user'
 
@@ -39,7 +40,9 @@ const contributionPaid = ref(false)
 const paymentLinkActive = computed(() => listing.value?.payment_link_active !== false)
 const paymentLinkError = computed(() => listing.value?.payment_link_error ?? null)
 
-
+function proxyFetch(url, options) {
+  return fetch(`${CORS_PROXY}${encodeURIComponent(url)}`, options)
+}
 
 const owner = computed(() => listing.value?.repository?.split('/')[0] ?? '')
 const repoName = computed(() => listing.value?.repository?.split('/')[1] ?? '')
@@ -69,7 +72,7 @@ async function connectGithub() {
   ghError.value = ''
 
   try {
-    const res = await fetch('https://github.com/login/device/code', {
+    const res = await proxyFetch('https://github.com/login/device/code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'read:user user:email' }),
@@ -120,7 +123,7 @@ async function pollForToken(code, intervalMs, deadline) {
   await new Promise((r) => setTimeout(r, intervalMs))
 
   try {
-    const res = await fetch('https://github.com/login/oauth/access_token', {
+    const res = await proxyFetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
