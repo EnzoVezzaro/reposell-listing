@@ -1,0 +1,14 @@
+{
+  "schema": "reposell.federation-events/v1",
+  "events": [
+    {
+      "schema": "reposell.event/v1",
+      "event": "listing.created",
+      "listing": {
+        "id": "lst_9cebf418d001"
+      },
+      "timestamp": "2026-08-26T12:36:17.512Z",
+      "actor": "EnzoVezzaro/reposell-example"
+    }
+  ]
+}
