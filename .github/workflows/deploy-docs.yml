@@ -25,10 +25,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install + build
-        run: |
-          npm ci
-          npm run docs:build
+      - name: Install deps
+        run: npm ci
+      - name: Regenerate public index
+        run: node scripts/build-listings-index.mjs
+      - name: Build docs
+        run: npm run docs:build
       - name: Add CNAME
         run: echo "listing.reposell.dev" > docs/.vitepress/dist/CNAME
       - uses: actions/configure-pages@v5

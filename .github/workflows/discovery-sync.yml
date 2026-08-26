@@ -34,12 +34,15 @@ jobs:
         env:
           LISTING_STRIPE_SECRET_KEY: ${{ secrets.LISTING_STRIPE_SECRET_KEY }}
 
+      - name: Regenerate public index
+        run: node scripts/build-listings-index.mjs
+
       - name: Commit generated registry updates
         run: |
-          if [[ -n "$(git status --porcelain listing/)" ]]; then
+          if [[ -n "$(git status --porcelain)" ]]; then
             git config user.name "reposell-listing-ci"
             git config user.email "ci@reposell.dev"
-            git add listing/
-            git commit -m "ci: sync discovery payment metadata"
+            git add listing/ docs/public/registry/listings.json docs/registry/
+            git commit -m "ci: sync discovery payment metadata + rebuild index"
             git push
           fi

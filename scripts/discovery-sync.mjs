@@ -96,6 +96,7 @@ for (const file of refreshed) {
     payment_link_id: link.payment_link_id,
     price_id: link.price_id,
     product_id: link.product_id,
+    payment_link_url: link.payment_link_url,
   };
   await writeFile(full, `${JSON.stringify(record, null, 2)}\n`);
   console.log(`✓ ${file}: discovery link ${link.payment_link_id} (${link.payment_link_url})`);

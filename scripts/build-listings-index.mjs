@@ -24,7 +24,7 @@ try {
         release: record.product?.release ?? '(unknown)',
         description: record.product?.description ?? '',
         sell_url: record.seller?.sell_url ?? '',
-        payment_link: record.seller?.payment_link ?? '',
+        payment_link: record.listing?.stripe?.payment_link_url ?? record.seller?.payment_link ?? '',
         amount: record.listing?.discovery_price?.amount ?? null,
         currency: record.listing?.discovery_price?.currency ?? '',
         community: record.community ?? null,
