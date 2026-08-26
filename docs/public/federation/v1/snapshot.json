@@ -1,6 +1,6 @@
 {
   "schema": "reposell.federation-snapshot/v1",
-  "updated_at": "2026-08-26T14:28:23.219Z",
+  "updated_at": "2026-08-26T14:46:03.675Z",
   "listings": [
     {
       "listing": {
@@ -23,7 +23,7 @@
         "repository": "EnzoVezzaro/reposell-example",
         "sell_path": "/sell"
       },
-      "published_at": "2026-08-26T14:28:23.218Z"
+      "published_at": "2026-08-26T14:46:03.674Z"
     }
   ]
 }

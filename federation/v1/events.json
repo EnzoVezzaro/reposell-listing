@@ -36,6 +36,15 @@
       },
       "timestamp": "2026-08-26T14:28:23.219Z",
       "actor": "EnzoVezzaro/reposell-example"
+    },
+    {
+      "schema": "reposell.event/v1",
+      "event": "listing.updated",
+      "listing": {
+        "id": "lst_9cebf418d001"
+      },
+      "timestamp": "2026-08-26T14:46:03.675Z",
+      "actor": "EnzoVezzaro/reposell-example"
     }
   ]
 }
