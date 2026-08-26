@@ -144,7 +144,7 @@ description: Discover software sold straight from the source. Every listing cryp
       <div class="lx-fcol lx-fbrand">
         <h4>reposell listing</h4>
         <p class="lx-fblurb">The official discovery directory. Every listing cryptographically verified against the seller's own live /sell.</p>
-        <p>Made with ☕ and 🎧 by Enzo Vezzaro — a solo developer from the Dominican Republic, building for a team tomorrow.</p>
+        <p>Built by Enzo Vezzaro — from the Dominican Republic, for the world.</p>
       </div>
       <nav class="lx-fcol" aria-label="Protocol">
         <h4>Protocol</h4>
