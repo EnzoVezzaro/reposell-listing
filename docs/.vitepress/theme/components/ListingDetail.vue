@@ -1,28 +1,57 @@
 <script setup>
 /**
  * ListingDetail — renders the full detail page for a single listing.
- * Reads from /registry/listings.json at runtime; receives listingId via props
- * from the generated markdown page. Fetches Discussion stats from GitHub's
- * public GraphQL API and repository info (description, README) from the REST API.
+ * ALL data comes from the listing record (captured during reposell listing publish).
+ * No GitHub API calls — works for private repos.
  *
- * The "Go to seller's storefront" CTA is gated behind a localStorage flag
- * that is set after the buyer clicks the contribution payment button.
- * This is a UX gate, not a cryptographic one — the storefront URL is public.
+ * Flow: GitHub login → pay contribution → Stripe redirect with session_id → storefront button enabled.
  */
-import { ref, onMounted, computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
+
+const GITHUB_CLIENT_ID = 'Iv23lidhennqrdpdFUAT'
+const CORS_PROXY = 'https://corsproxy.io/?url='
 
 const props = defineProps({
   listingId: { type: String, required: true },
 })
 
+// --- listing data ---
 const state = ref('loading')
 const listing = ref(null)
-const discussionStats = ref({ comments: 0, reactions: 0 })
-const discussionLoading = ref(false)
-const repoInfo = ref(null)
-const repoInfoLoading = ref(false)
+
+// --- GitHub Device Flow ---
+const ghState = ref('idle') // idle | device | polling | connected | error
+const ghError = ref('')
+const deviceCode = ref('')
+const userCode = ref('')
+const verificationUri = ref('')
+const countdown = ref(0)
+const ghToken = ref('')
+const ghUser = ref(null)
+let pollTimer = null
+
+// --- payment ---
 const contributionPaid = ref(false)
+
+function proxyFetch(url, options) {
+  return fetch(`${CORS_PROXY}${encodeURIComponent(url)}`, options)
+}
+
+const owner = computed(() => listing.value?.repository?.split('/')[0] ?? '')
+const repoName = computed(() => listing.value?.repository?.split('/')[1] ?? '')
+const githubUrl = computed(() => listing.value ? `https://github.com/${listing.value.repository}` : '')
+const discussionUrl = computed(() => listing.value?.community?.github?.discussion_url ?? null)
+const discussionNumber = computed(() => listing.value?.community?.github?.discussion_number ?? null)
+
+const ghConnected = computed(() => ghState.value === 'connected')
+
+const paymentUrl = computed(() => {
+  if (!listing.value?.payment_link) return ''
+  // Pass the GitHub token via state param so we know who's paying
+  const state = btoa(JSON.stringify({ listing_id: listing.value.id, gh_user: ghUser.value?.login }))
+  return `${listing.value.payment_link}?client_reference_id=${encodeURIComponent(state)}`
+})
 
 function money(amount, currency) {
   if (amount === null || amount === undefined) return ''
@@ -30,119 +59,140 @@ function money(amount, currency) {
   return currency ? `${formatted} ${currency}` : formatted
 }
 
-function shortRepo(repository) {
-  return repository.replace(/^https:\/\/github\.com\//, '')
-}
+// --- GitHub Device Flow ---
 
-const owner = computed(() => {
-  if (!listing.value) return ''
-  return listing.value.repository.split('/')[0] ?? ''
-})
+async function connectGithub() {
+  ghState.value = 'device'
+  ghError.value = ''
 
-const repoName = computed(() => {
-  if (!listing.value) return ''
-  return listing.value.repository.split('/')[1] ?? ''
-})
-
-const githubUrl = computed(() => {
-  if (!listing.value) return ''
-  return `https://github.com/${listing.value.repository}`
-})
-
-const discussionUrl = computed(() => {
-  const community = listing.value?.community?.github
-  if (!community?.discussion_url) return null
-  return community.discussion_url
-})
-
-const discussionNumber = computed(() => {
-  return listing.value?.community?.github?.discussion_number ?? null
-})
-
-const paymentKey = computed(() => {
-  if (!listing.value) return ''
-  return `reposell-contrib-paid:${listing.value.id}`
-})
-
-function markContributionPaid() {
   try {
-    localStorage.setItem(paymentKey.value, Date.now().toString())
-  } catch {
-    // localStorage may be unavailable — degrade gracefully.
-  }
-  contributionPaid.value = true
-}
-
-function checkContributionPaid() {
-  try {
-    const val = localStorage.getItem(paymentKey.value)
-    if (val) {
-      const ts = Number(val)
-      // Flag expires after 24 hours.
-      if (Number.isFinite(ts) && Date.now() - ts < 24 * 60 * 60 * 1000) {
-        contributionPaid.value = true
-      }
-    }
-  } catch {
-    // localStorage unavailable — default to not paid.
-  }
-}
-
-async function fetchDiscussionStats(owner, repo, number) {
-  try {
-    const query = `
-      query ($owner: String!, $name: String!, $number: Int!) {
-        repository(owner: $owner, name: $name) {
-          discussion(number: $number) {
-            comments { totalCount }
-            reactions { totalCount }
-          }
-        }
-      }
-    `
-    const res = await fetch('https://api.github.com/graphql', {
+    const res = await proxyFetch('https://github.com/login/device/code', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ query, variables: { owner, name: repo, number } }),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'read:user user:email' }),
     })
-    const json = await res.json()
-    const d = json?.data?.repository?.discussion
-    if (d) {
-      discussionStats.value = {
-        comments: d.comments?.totalCount ?? 0,
-        reactions: d.reactions?.totalCount ?? 0,
-      }
-    }
-  } catch {
-    // Discussion stats are optional — degrade gracefully.
-  }
-}
-
-async function fetchRepoInfo(owner, repo) {
-  repoInfoLoading.value = true
-  try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`)
-    if (!res.ok) return
     const data = await res.json()
-    repoInfo.value = {
-      description: data.description ?? '',
-      topics: data.topics ?? [],
-      stars: data.stargazers_count ?? 0,
-      language: data.language ?? '',
-      license: data.license?.spdx_id ?? '',
-      homepage: data.homepage ?? '',
+
+    if (data.error) {
+      ghState.value = 'error'
+      ghError.value = data.error_description || 'GitHub rejected the request — try again.'
+      return
     }
 
-    // Use README from the listing record (fetched by CLI during publish)
-    if (found.readme) {
-      repoInfo.value.readmeText = found.readme
-    }
+    deviceCode.value = data.device_code
+    userCode.value = data.user_code
+    verificationUri.value = data.verification_uri
+    window.open(data.verification_uri, '_blank', 'noopener')
+    startPolling(data.device_code, data.interval || 5, data.expires_in || 900)
   } catch {
-    // Repo info is optional — degrade gracefully.
-  } finally {
-    repoInfoLoading.value = false
+    ghState.value = 'error'
+    ghError.value = 'Could not reach GitHub — check your connection.'
   }
 }
+
+function startPolling(code, interval, expiresIn) {
+  countdown.value = expiresIn
+  const deadline = Date.now() + expiresIn * 1000
+
+  pollTimer = setInterval(() => {
+    countdown.value = Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
+    if (countdown.value <= 0) {
+      stopPolling()
+      ghState.value = 'error'
+      ghError.value = 'Device code expired — try again.'
+    }
+  }, 1000)
+
+  pollForToken(code, interval * 1000, deadline)
+}
+
+async function pollForToken(code, intervalMs, deadline) {
+  if (Date.now() >= deadline) {
+    stopPolling()
+    ghState.value = 'error'
+    ghError.value = 'Device code expired — try again.'
+    return
+  }
+
+  await new Promise((r) => setTimeout(r, intervalMs))
+
+  try {
+    const res = await proxyFetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        client_id: GITHUB_CLIENT_ID,
+        device_code: code,
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+      }),
+    })
+    const data = await res.json()
+
+    if (data.access_token) {
+      stopPolling()
+      ghToken.value = data.access_token
+      ghState.value = 'connected'
+      // Fetch user info
+      try {
+        const uRes = await fetch('https://api.github.com/user', {
+          headers: { Authorization: `Bearer ${data.access_token}` },
+        })
+        if (uRes.ok) ghUser.value = await uRes.json()
+      } catch { /* ignore */ }
+      return
+    }
+
+    if (data.error === 'authorization_pending') {
+      pollForToken(code, intervalMs, deadline)
+      return
+    }
+
+    if (data.error === 'slow_down') {
+      pollForToken(code, intervalMs + 5000, deadline)
+      return
+    }
+
+    // Other errors (access_denied, expired_token, etc.)
+    stopPolling()
+    ghState.value = 'error'
+    ghError.value = data.error_description || 'Authorization failed — try again.'
+  } catch {
+    pollForToken(code, intervalMs, deadline)
+  }
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+function disconnectGithub() {
+  ghToken.value = ''
+  ghUser.value = null
+  ghState.value = 'idle'
+  stopPolling()
+}
+
+onBeforeUnmount(() => stopPolling())
+
+// --- payment confirmation from Stripe redirect URL ---
+
+function checkPaymentConfirmation() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('session_id')) {
+      contributionPaid.value = true
+      // Clean the URL so the session_id isn't visible
+      const url = new URL(window.location.href)
+      url.searchParams.delete('session_id')
+      window.history.replaceState({}, '', url.toString())
+    }
+  } catch { /* ignore */ }
+}
+
+// --- init ---
 
 onMounted(async () => {
   try {
@@ -155,25 +205,7 @@ onMounted(async () => {
     } else {
       listing.value = found
       state.value = 'ready'
-
-      checkContributionPaid()
-
-      // Fetch Discussion stats if available.
-      const community = found.community?.github
-      if (community?.discussion_number && community?.repository) {
-        discussionLoading.value = true
-        const [repoOwner, repoName] = community.repository.split('/')
-        if (repoOwner && repoName) {
-          await fetchDiscussionStats(repoOwner, repoName, community.discussion_number)
-        }
-        discussionLoading.value = false
-      }
-
-      // Fetch repository info from GitHub.
-      const repoParts = found.repository?.split('/')
-      if (repoParts?.length === 2) {
-        await fetchRepoInfo(repoParts[0], repoParts[1])
-      }
+      checkPaymentConfirmation()
     }
   } catch {
     state.value = 'error'
@@ -211,21 +243,46 @@ onMounted(async () => {
         </a>
       </div>
 
-      <div v-if="repoInfo" class="ld-detail-repo">
-        <p v-if="repoInfo.description" class="ld-repo-desc">{{ repoInfo.description }}</p>
-        <div class="ld-repo-meta">
-          <span v-if="repoInfo.language" class="ld-repo-tag">{{ repoInfo.language }}</span>
-          <span v-if="repoInfo.stars" class="ld-repo-tag">⭐ {{ repoInfo.stars.toLocaleString() }}</span>
-          <span v-if="repoInfo.license" class="ld-repo-tag">{{ repoInfo.license }}</span>
-          <span v-for="topic in repoInfo.topics?.slice(0, 4)" :key="topic" class="ld-repo-tag ld-repo-tag--topic">{{ topic }}</span>
-        </div>
-        <div v-if="repoInfo.readmeText" class="ld-readme-viewer">
-          <h3 class="ld-readme-title">README</h3>
-          <pre class="ld-readme-scroll">{{ repoInfo.readmeText }}</pre>
-        </div>
+      <!-- README from listing record — no API -->
+      <div v-if="listing.readme" class="ld-readme-viewer">
+        <h3 class="ld-readme-title">README</h3>
+        <pre class="ld-readme-scroll">{{ listing.readme }}</pre>
       </div>
-      <p v-else-if="repoInfoLoading" class="ld-note ld-loading">Loading repository info…</p>
 
+      <!-- GitHub connection -->
+      <div class="ld-detail-section ld-gh-section">
+        <h2>GitHub account</h2>
+
+        <template v-if="ghConnected && ghUser">
+          <div class="ld-gh-connected">
+            <span class="ld-gh-avatar">✓</span>
+            <span class="ld-gh-user">@{{ ghUser.login }}</span>
+            <button class="ld-gh-disconnect" @click="disconnectGithub">Disconnect</button>
+          </div>
+        </template>
+
+        <template v-else-if="ghState === 'device' || ghState === 'polling'">
+          <div class="ld-gh-device">
+            <p class="ld-gh-instructions">
+              Enter this code on GitHub:
+              <strong class="ld-gh-code">{{ userCode }}</strong>
+            </p>
+            <p class="ld-gh-timer">{{ countdown }}s remaining</p>
+          </div>
+        </template>
+
+        <template v-else-if="ghState === 'error'">
+          <p class="ld-gh-error">{{ ghError }}</p>
+          <button class="ld-btn ld-btn--primary" @click="connectGithub">Try again</button>
+        </template>
+
+        <template v-else>
+          <p class="ld-gh-hint">Connect your GitHub account to purchase this listing.</p>
+          <button class="ld-btn ld-btn--primary" @click="connectGithub">Connect GitHub</button>
+        </template>
+      </div>
+
+      <!-- How to get access -->
       <div class="ld-detail-section">
         <h2>How to get access</h2>
         <ol class="ld-steps">
@@ -242,14 +299,16 @@ onMounted(async () => {
               their license revenue.
             </p>
             <a
-              v-if="listing.payment_link"
-              :href="listing.payment_link"
+              v-if="listing.payment_link && ghConnected"
+              :href="paymentUrl"
               class="ld-btn ld-btn--primary"
               rel="nofollow noopener"
-              @click="markContributionPaid"
             >
               Pay {{ money(listing.amount, listing.currency) }} contribution
             </a>
+            <p v-if="!ghConnected" class="ld-step-hint">
+              Connect your GitHub account above to proceed with payment.
+            </p>
           </li>
           <li>
             <div class="ld-step-head">
@@ -281,24 +340,15 @@ onMounted(async () => {
         </ol>
       </div>
 
+      <!-- Discussion -->
       <div v-if="discussionUrl" class="ld-detail-section ld-detail-community">
         <h2>Community</h2>
-        <div class="ld-community-stats">
-          <span v-if="!discussionLoading" class="ld-stat">
-            <span class="ld-stat-icon">💬</span>
-            {{ discussionStats.comments }} {{ discussionStats.comments === 1 ? 'comment' : 'comments' }}
-          </span>
-          <span v-if="!discussionLoading" class="ld-stat">
-            <span class="ld-stat-icon">👍</span>
-            {{ discussionStats.reactions }} {{ discussionStats.reactions === 1 ? 'reaction' : 'reactions' }}
-          </span>
-          <span v-if="discussionLoading" class="ld-stat ld-stat--loading">Loading…</span>
-        </div>
         <a :href="discussionUrl" class="ld-btn ld-btn--community" target="_blank" rel="noopener">
           Join Discussion ↗
         </a>
       </div>
 
+      <!-- About -->
       <div class="ld-detail-section ld-detail-about">
         <h2>About this listing</h2>
         <dl class="ld-detail-meta">
@@ -322,7 +372,6 @@ onMounted(async () => {
 .ld-detail { max-width: 720px; margin: 0 auto; }
 .ld-note { color: var(--vp-c-text-2); padding: 2rem 0; }
 .ld-error { color: var(--vp-c-danger-1); }
-.ld-loading { font-style: italic; }
 
 .ld-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .ld-detail-title { font-size: 1.8rem; font-weight: 700; margin: 0; }
@@ -337,16 +386,26 @@ onMounted(async () => {
 .ld-link { color: var(--vp-c-brand-1); font-size: 0.9rem; text-decoration: none; }
 .ld-link:hover { text-decoration: underline; }
 
-.ld-detail-repo { margin-bottom: 2rem; padding: 1.2rem 1.4rem; background: var(--vp-c-bg-soft); border-radius: 12px; border: 1px solid var(--vp-c-divider); }
-.ld-repo-desc { font-size: 1rem; color: var(--vp-c-text-1); margin: 0 0 0.6rem; line-height: 1.5; }
-.ld-repo-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
-.ld-repo-tag { font-size: 0.78rem; padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--vp-c-default-soft); color: var(--vp-c-text-2); white-space: nowrap; }
-.ld-repo-tag--topic { background: var(--vp-c-brand-soft); color: var(--vp-c-brand-1); }
-.ld-readme-viewer { border-top: 1px solid var(--vp-c-divider); padding-top: 1rem; margin-top: 0.8rem; }
+/* README viewer */
+.ld-readme-viewer { margin-bottom: 2rem; }
 .ld-readme-title { font-size: 0.9rem; font-weight: 600; color: var(--vp-c-text-2); margin: 0 0 0.6rem; }
-.ld-readme-scroll { max-height: 400px; overflow-y: auto; border: 1px solid var(--vp-c-divider); border-radius: 8px; padding: 1rem 1.2rem; background: var(--vp-c-bg); font-size: 0.9rem; line-height: 1.7; }
-.ld-readme-scroll { font-family: var(--vp-font-family-mono); font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; color: var(--vp-c-text-2); }
+.ld-readme-scroll { max-height: 500px; overflow-y: auto; border: 1px solid var(--vp-c-divider); border-radius: 8px; padding: 1rem 1.2rem; background: var(--vp-c-bg); font-family: var(--vp-font-family-mono); font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; color: var(--vp-c-text-2); }
 
+/* GitHub section */
+.ld-gh-section { background: var(--vp-c-bg-soft); border-radius: 12px; padding: 1.2rem 1.4rem; }
+.ld-gh-section h2 { border: none; padding: 0; margin-bottom: 0.8rem; font-size: 1.1rem; }
+.ld-gh-connected { display: flex; align-items: center; gap: 0.6rem; }
+.ld-gh-avatar { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #238636; color: white; font-size: 0.8rem; font-weight: 700; }
+.ld-gh-user { font-weight: 600; font-size: 0.95rem; }
+.ld-gh-disconnect { margin-left: auto; background: none; border: none; color: var(--vp-c-text-3); font-size: 0.82rem; cursor: pointer; text-decoration: underline; }
+.ld-gh-device { text-align: center; }
+.ld-gh-instructions { font-size: 0.92rem; color: var(--vp-c-text-1); margin: 0 0 0.4rem; }
+.ld-gh-code { font-family: var(--vp-font-family-mono); font-size: 1.4rem; letter-spacing: 0.15em; color: var(--vp-c-brand-1); background: var(--vp-c-bg); padding: 0.3rem 0.8rem; border-radius: 6px; border: 1px dashed var(--vp-c-divider); }
+.ld-gh-timer { font-size: 0.82rem; color: var(--vp-c-text-3); margin: 0; }
+.ld-gh-hint { font-size: 0.92rem; color: var(--vp-c-text-2); margin: 0 0 0.8rem; }
+.ld-gh-error { font-size: 0.92rem; color: var(--vp-c-danger-1); margin: 0 0 0.8rem; }
+
+/* Steps */
 .ld-detail-section { margin-bottom: 2.5rem; }
 .ld-detail-section h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--vp-c-divider); padding-bottom: 0.5rem; }
 
@@ -357,20 +416,18 @@ onMounted(async () => {
 .ld-step-desc { color: var(--vp-c-text-2); font-size: 0.92rem; line-height: 1.6; margin: 0 0 0.8rem 2.2rem; }
 .ld-step-hint { font-size: 0.82rem; color: var(--vp-c-text-3); margin: 0.4rem 0 0 2.2rem; font-style: italic; }
 
-.ld-btn { display: inline-block; font-size: 0.88rem; font-weight: 600; text-decoration: none; border-radius: 8px; padding: 0.5rem 1.1rem; margin-left: 2.2rem; cursor: pointer; }
+.ld-btn { display: inline-block; font-size: 0.88rem; font-weight: 600; text-decoration: none; border-radius: 8px; padding: 0.5rem 1.1rem; margin-left: 2.2rem; cursor: pointer; border: none; }
 .ld-btn:hover { opacity: 0.9; text-decoration: none; }
 .ld-btn--primary { background: var(--vp-c-brand-1); color: var(--vp-c-white); }
 .ld-btn--secondary { background: transparent; color: var(--vp-c-brand-1); border: 1px solid var(--vp-c-brand-1); }
 .ld-btn--disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; border: 2px dashed var(--vp-c-text-3) !important; color: var(--vp-c-text-3); background: transparent !important; }
 .ld-btn--community { background: var(--vp-c-default-soft); color: var(--vp-c-text-1); border: 1px solid var(--vp-c-divider); }
 
+/* Community */
 .ld-detail-community { background: var(--vp-c-bg-soft); border-radius: 12px; padding: 1.2rem 1.4rem; }
 .ld-detail-community h2 { border: none; padding: 0; margin-bottom: 0.8rem; }
-.ld-community-stats { display: flex; gap: 1.5rem; margin-bottom: 1rem; }
-.ld-stat { display: flex; align-items: center; gap: 0.4rem; font-size: 0.92rem; color: var(--vp-c-text-2); }
-.ld-stat-icon { font-size: 1rem; }
-.ld-stat--loading { font-style: italic; }
 
+/* About */
 .ld-detail-about dl { display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem; font-size: 0.9rem; }
 .ld-detail-about dt { font-weight: 600; color: var(--vp-c-text-2); }
 .ld-detail-about dd { margin: 0; }

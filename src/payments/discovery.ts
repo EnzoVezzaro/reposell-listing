@@ -160,7 +160,7 @@ export async function ensureDiscoveryLink(input: {
     'line_items[0][price]': priceId,
     'line_items[0][quantity]': '1',
     'after_completion[type]': 'redirect',
-    'after_completion[redirect][url]': `${link.baseUrl}/registry/tools/${link.repository.replace('/', '-').toLowerCase()}/`,
+    'after_completion[redirect][url]': `${link.baseUrl}/registry/tools/${link.repository.replace('/', '-').toLowerCase()}/?session_id={CHECKOUT_SESSION_ID}`,
     ...metadataFields(link),
   });
   const linkId = paymentLink.id;
