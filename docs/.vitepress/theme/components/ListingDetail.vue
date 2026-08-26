@@ -362,7 +362,7 @@ onMounted(async () => {
 .ld-btn:hover { opacity: 0.9; text-decoration: none; }
 .ld-btn--primary { background: var(--vp-c-brand-1); color: var(--vp-c-white); }
 .ld-btn--secondary { background: transparent; color: var(--vp-c-brand-1); border: 1px solid var(--vp-c-brand-1); }
-.ld-btn--disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; border-style: dashed; color: var(--vp-c-text-3); }
+.ld-btn--disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; border: 2px dashed var(--vp-c-text-3) !important; color: var(--vp-c-text-3); background: transparent !important; }
 .ld-btn--community { background: var(--vp-c-default-soft); color: var(--vp-c-text-1); border: 1px solid var(--vp-c-divider); }
 
 .ld-detail-community { background: var(--vp-c-bg-soft); border-radius: 12px; padding: 1.2rem 1.4rem; }

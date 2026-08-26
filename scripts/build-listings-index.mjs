@@ -28,6 +28,7 @@ try {
         amount: record.listing?.discovery_price?.amount ?? null,
         currency: record.listing?.discovery_price?.currency ?? '',
         community: record.community ?? null,
+        readme: record.readme ?? null,
       };
     }),
   );
