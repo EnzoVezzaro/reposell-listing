@@ -323,13 +323,19 @@ onMounted(async () => {
               their license revenue.
             </p>
             <a
-              v-if="listing.payment_link && ghConnected"
+              v-if="listing.payment_link && ghConnected && !contributionPaid"
               :href="paymentUrl"
               class="ld-btn ld-btn--primary"
               rel="nofollow noopener"
             >
               Pay {{ money(listing.amount, listing.currency) }} contribution
             </a>
+            <span
+              v-else-if="listing.payment_link && ghConnected && contributionPaid"
+              class="ld-btn ld-btn--paid"
+            >
+              Paid {{ money(listing.amount, listing.currency) }} contribution ✓
+            </span>
             <p v-if="!ghConnected" class="ld-step-hint">
               Connect your GitHub account above to proceed with payment.
             </p>
@@ -445,6 +451,7 @@ onMounted(async () => {
 .ld-btn--primary { background: var(--vp-c-brand-1); color: var(--vp-c-white); }
 .ld-btn--secondary { background: transparent; color: var(--vp-c-brand-1); border: 1px solid var(--vp-c-brand-1); }
 .ld-btn--disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; border: 2px dashed var(--vp-c-text-3) !important; color: var(--vp-c-text-3); background: transparent !important; }
+.ld-btn--paid { display: inline-block; font-size: 0.88rem; font-weight: 600; text-decoration: none; border-radius: 8px; padding: 0.5rem 1.1rem; margin-left: 2.2rem; cursor: not-allowed; pointer-events: none; border: 2px dashed var(--vp-c-text-3) !important; color: var(--vp-c-text-3); background: transparent !important; opacity: 0.4; }
 .ld-btn--community { background: var(--vp-c-default-soft); color: var(--vp-c-text-1); border: 1px solid var(--vp-c-divider); }
 
 /* Community */
