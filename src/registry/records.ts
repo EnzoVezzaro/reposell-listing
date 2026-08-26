@@ -18,6 +18,8 @@ export interface ListingRecord {
     discovery_price: { amount: number; currency: string };
     stripe: { payment_link_id: string; price_id: string; product_id: string };
   };
+  /** README markdown — fetched by the CLI from the seller's repo during publish. */
+  readme?: string;
 }
 
 export class ImmutabilityError extends Error {

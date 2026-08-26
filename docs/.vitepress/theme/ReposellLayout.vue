@@ -51,7 +51,7 @@ watchEffect(applyAppearance)
 const stars = ref('')
 const version = ref('')
 
-const fallbackVersion = `v${globalThis.__APP_VERSION__ ?? '0.1.1'}`
+const fallbackVersion = `v${globalThis.__APP_VERSION__}`
 
 function formatStars(n) {
   return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n)
@@ -102,7 +102,7 @@ async function fetchVersion() {
       version.value = cached
       return
     }
-    const res = await fetch('https://api.github.com/repos/EnzoVezzaro/reposell-listing-listing/releases/latest', {
+    const res = await fetch('https://api.github.com/repos/EnzoVezzaro/reposell/releases/latest', {
       headers: { Accept: 'application/vnd.github+json' },
     })
     if (!res.ok) return
@@ -157,7 +157,7 @@ async function fetchStars() {
 
     <template #nav-bar-content-after>
       <div class="rs-nav-extra">
-        <a class="rs-pill rs-pill--ver" href="https://github.com/EnzoVezzaro/reposell-listing/releases" target="_blank" rel="noopener">{{ version || fallbackVersion }}</a>
+        <a class="rs-pill rs-pill--ver" href="https://github.com/EnzoVezzaro/reposell/releases" target="_blank" rel="noopener">{{ version || fallbackVersion }}</a>
         <a class="rs-pill rs-pill--star" href="https://github.com/EnzoVezzaro/reposell-listing" target="_blank" rel="noopener" aria-label="Star reposell on GitHub">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M8 .8l2.1 4.6 5 .5-3.7 3.4 1 4.9L8 11.7l-4.4 2.5 1-4.9L.9 5.9l5-.5L8 .8z" />

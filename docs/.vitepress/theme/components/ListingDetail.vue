@@ -133,25 +133,9 @@ async function fetchRepoInfo(owner, repo) {
       homepage: data.homepage ?? '',
     }
 
-    // Fetch README for a short summary
-    try {
-      const readmeRes = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/readme`,
-        { headers: { accept: 'application/vnd.github.html+json' } },
-      )
-      if (readmeRes.ok) {
-        const html = await readmeRes.text()
-        // Extract first ~300 chars of text content from the README HTML
-        const tmp = document.createElement('div')
-        tmp.innerHTML = html
-        const text = tmp.textContent ?? ''
-        const firstParagraph = text.split(/\n\n+/).find((p) => p.trim().length > 40)
-        if (firstParagraph) {
-          repoInfo.value.readmeExcerpt = firstParagraph.trim().slice(0, 400)
-        }
-      }
-    } catch {
-      // README excerpt is optional.
+    // Use README from the listing record (fetched by CLI during publish)
+    if (found.readme) {
+      repoInfo.value.readmeText = found.readme
     }
   } catch {
     // Repo info is optional — degrade gracefully.
@@ -235,7 +219,10 @@ onMounted(async () => {
           <span v-if="repoInfo.license" class="ld-repo-tag">{{ repoInfo.license }}</span>
           <span v-for="topic in repoInfo.topics?.slice(0, 4)" :key="topic" class="ld-repo-tag ld-repo-tag--topic">{{ topic }}</span>
         </div>
-        <p v-if="repoInfo.readmeExcerpt" class="ld-repo-readme">{{ repoInfo.readmeExcerpt }}</p>
+        <div v-if="repoInfo.readmeText" class="ld-readme-viewer">
+          <h3 class="ld-readme-title">README</h3>
+          <pre class="ld-readme-scroll">{{ repoInfo.readmeText }}</pre>
+        </div>
       </div>
       <p v-else-if="repoInfoLoading" class="ld-note ld-loading">Loading repository info…</p>
 
@@ -289,7 +276,7 @@ onMounted(async () => {
               Go to seller's storefront →
             </a>
             <p v-if="!contributionPaid" class="ld-step-hint">
-              Pay the contribution above to unlock this link.
+              To buy &amp; fork this, you need to pay the listing fee above.
             </p>
           </li>
         </ol>
@@ -356,7 +343,10 @@ onMounted(async () => {
 .ld-repo-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
 .ld-repo-tag { font-size: 0.78rem; padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--vp-c-default-soft); color: var(--vp-c-text-2); white-space: nowrap; }
 .ld-repo-tag--topic { background: var(--vp-c-brand-soft); color: var(--vp-c-brand-1); }
-.ld-repo-readme { font-size: 0.9rem; color: var(--vp-c-text-2); line-height: 1.6; margin: 0; border-top: 1px solid var(--vp-c-divider); padding-top: 0.8rem; }
+.ld-readme-viewer { border-top: 1px solid var(--vp-c-divider); padding-top: 1rem; margin-top: 0.8rem; }
+.ld-readme-title { font-size: 0.9rem; font-weight: 600; color: var(--vp-c-text-2); margin: 0 0 0.6rem; }
+.ld-readme-scroll { max-height: 400px; overflow-y: auto; border: 1px solid var(--vp-c-divider); border-radius: 8px; padding: 1rem 1.2rem; background: var(--vp-c-bg); font-size: 0.9rem; line-height: 1.7; }
+.ld-readme-scroll { font-family: var(--vp-font-family-mono); font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; color: var(--vp-c-text-2); }
 
 .ld-detail-section { margin-bottom: 2.5rem; }
 .ld-detail-section h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--vp-c-divider); padding-bottom: 0.5rem; }

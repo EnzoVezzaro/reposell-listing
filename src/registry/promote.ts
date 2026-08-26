@@ -74,6 +74,9 @@ export function promotePrPayload(pr: unknown): PendingListingRecord {
   }
 
   const commit = payload.release.commit;
+  const readme = typeof (payload as Record<string, unknown>)['readme'] === 'string'
+    ? String((payload as Record<string, unknown>)['readme'])
+    : undefined;
   return {
     schema: REGISTRY_SCHEMA,
     product: {
@@ -88,5 +91,6 @@ export function promotePrPayload(pr: unknown): PendingListingRecord {
     listing: {
       discovery_price: { amount: price.amount, currency: String(price.currency) },
     },
+    ...(readme !== undefined ? { readme } : {}),
   };
 }
