@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -49,3 +49,16 @@ jobs:
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: blocked
+
+  automerge:
+    name: Merge verified Listing PR (PASS → listed)
+    needs: verify
+    if: success() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Squash-merge the verified PR
+        # On merge, discovery-sync.yml provisions the immutable discovery
+        # Payment Link and the listing goes live in the registry.
+        run: gh pr merge --squash --delete-branch "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
