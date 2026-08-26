@@ -11,7 +11,7 @@
   },
   "schema": "reposell-listing-record/v1",
   "seller": {
-    "payment_link": "https://buy.stripe.com/test_4gMeVebjL0jI3Ee0BHfrW01",
+    "payment_link": "https://buy.stripe.com/test_dRm3cwevX1nM0s25W1frW03",
     "sell_url": "https://EnzoVezzaro.github.io/reposell-example/sell/"
   },
   "id": "lst_9cebf418d001",
