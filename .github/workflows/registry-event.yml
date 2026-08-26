@@ -52,10 +52,21 @@ jobs:
         run: |
           git config user.name "reposell-registry[bot]"
           git config user.email "registry@reposell.dev"
-          git add listing/ federation/
+          git add listing/ federation/ docs/public/federation/
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             exit 0
           fi
           git commit -m "registry: ${EVENT_TYPE:-manual} — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push
+
+      - name: Chain discovery link provisioning
+        # Commits made with GITHUB_TOKEN do not trigger other workflows
+        # (recursion guard) — chain explicitly so every new/updated listing
+        # gets its immutable discovery Payment Link immediately.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet HEAD~1 HEAD -- listing/ 2>/dev/null || true; then
+            gh workflow run discovery-sync.yml --repo "$GITHUB_REPOSITORY" && echo "discovery-sync dispatched"
+          fi
