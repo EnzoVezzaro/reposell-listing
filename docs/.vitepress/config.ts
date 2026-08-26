@@ -17,7 +17,7 @@ export default defineConfig({
     siteTitle: false,
     nav: [
       { text: 'Guide', link: '/guide/' },
-      { text: 'Registry', link: '/registry/' },
+      { text: 'Registry', link: '/registry/listings' },
     ],
     sidebar: {
       '/guide/': [
@@ -34,6 +34,7 @@ export default defineConfig({
         {
           text: 'Registry',
           items: [
+            { text: 'Connected Listings', link: '/registry/listings' },
             { text: 'Overview', link: '/registry/' },
             { text: 'PR Verification', link: '/registry/verification' },
           ],
