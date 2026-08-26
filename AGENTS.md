@@ -51,7 +51,7 @@ Owner: the listing repository itself (Git + Actions)
 ## Constraints
 
 - Official signing key NEVER committed to Git, CI, or logs
-- `REPOSELL_STRIPE_SECRET_KEY` lives ONLY in this repo's Actions secrets; test mode (`sk_test_…`) until launch
+- `REPOSELL_STRIPE_SECRET_KEY` lives ONLY in this repo's Actions secrets; live mode for production
 - Every release gets its own IMMUTABLE Listing Payment Link — never deleted/replaced/reused between releases
 - Contribution amounts are declared by sellers; changes apply to future releases only
 - All financial operations MUST be idempotent (CI reruns never duplicate Stripe objects)
