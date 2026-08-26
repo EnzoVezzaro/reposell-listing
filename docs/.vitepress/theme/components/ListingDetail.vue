@@ -209,6 +209,57 @@ function checkPaymentConfirmation() {
   } catch { /* ignore */ }
 }
 
+// --- runtime link validation ---
+
+const discoveryLinkValid = ref(true)
+const sellPageValid = ref(true)
+const linkErrors = ref([])
+
+async function validateDiscoveryLink(paymentLink) {
+  if (!paymentLink) return
+  try {
+    const res = await fetch(paymentLink, { method: 'HEAD', redirect: 'follow' })
+    if (!res.ok) {
+      discoveryLinkValid.value = false
+      linkErrors.value.push('Discovery contribution link is not active.')
+    }
+  } catch {
+    // CORS may block this — fail open (trust CI validation)
+  }
+}
+
+async function validateSellPage(sellUrl) {
+  if (!sellUrl) return
+  try {
+    const res = await fetch(sellUrl)
+    if (!res.ok) {
+      sellPageValid.value = false
+      linkErrors.value.push('Seller storefront is not accessible.')
+      return
+    }
+    const html = await res.text()
+    // Check if the page has active offers in reposell-data
+    const match = html.match(/<script[^>]*id="reposell-data"[^>]*>([\s\S]*?)<\/script>/)
+    if (match) {
+      const data = JSON.parse(match[1])
+      const hasActive = (data.releases ?? []).some(
+        (r) => r.status === 'available' && (r.offers ?? []).some((o) => o.status === 'available')
+      )
+      if (!hasActive) {
+        sellPageValid.value = false
+        linkErrors.value.push('Seller has no active payment links for this release.')
+      }
+    } else {
+      // No reposell-data found — page may not be a valid sell page
+      sellPageValid.value = false
+      linkErrors.value.push('Seller storefront does not have valid payment data.')
+    }
+  } catch {
+    sellPageValid.value = false
+    linkErrors.value.push('Seller storefront is not accessible.')
+  }
+}
+
 // --- init ---
 
 onMounted(async () => {
@@ -234,6 +285,10 @@ onMounted(async () => {
       listing.value = found
       state.value = 'ready'
       checkPaymentConfirmation()
+
+      // Runtime validation: check both links in parallel
+      validateDiscoveryLink(found.payment_link)
+      validateSellPage(found.sell_url)
     }
   } catch {
     state.value = 'error'
@@ -327,7 +382,7 @@ onMounted(async () => {
               their license revenue.
             </p>
             <a
-              v-if="listing.payment_link && ghConnected && !contributionPaid && paymentLinkActive"
+              v-if="listing.payment_link && ghConnected && !contributionPaid && discoveryLinkValid"
               :href="paymentUrl"
               class="ld-btn ld-btn--primary"
               rel="nofollow noopener"
@@ -340,8 +395,8 @@ onMounted(async () => {
             >
               Paid {{ money(listing.amount, listing.currency) }} contribution ✓
             </span>
-            <p v-if="listing.payment_link && ghConnected && !contributionPaid && !paymentLinkActive" class="ld-step-hint ld-warning">
-              ⚠ Payment link is currently unavailable. Please try again later.
+            <p v-if="listing.payment_link && ghConnected && !contributionPaid && !discoveryLinkValid" class="ld-step-hint ld-warning">
+              ⚠ {{ linkErrors[0] || 'Payment link is currently unavailable.' }}
             </p>
             <p v-if="!ghConnected" class="ld-step-hint">
               Connect your GitHub account above to proceed with payment.
@@ -361,20 +416,20 @@ onMounted(async () => {
               v-if="listing.sell_url"
               :href="listing.sell_url"
               class="ld-btn ld-btn--secondary"
-              :class="{ 'ld-btn--disabled': !contributionPaid || !paymentLinkActive }"
-              :aria-disabled="!contributionPaid || !paymentLinkActive"
-              :tabindex="contributionPaid && paymentLinkActive ? 0 : -1"
+              :class="{ 'ld-btn--disabled': !contributionPaid || !sellPageValid }"
+              :aria-disabled="!contributionPaid || !sellPageValid"
+              :tabindex="contributionPaid && sellPageValid ? 0 : -1"
               target="_blank"
               rel="noopener"
-              @click="contributionPaid && paymentLinkActive ? null : $event.preventDefault()"
+              @click="contributionPaid && sellPageValid ? null : $event.preventDefault()"
             >
               Go to seller's storefront →
             </a>
-            <p v-if="!contributionPaid && paymentLinkActive" class="ld-step-hint">
+            <p v-if="!contributionPaid && sellPageValid" class="ld-step-hint">
               To buy &amp; fork this, you need to pay the listing fee above.
             </p>
-            <p v-if="!paymentLinkActive" class="ld-step-hint ld-warning">
-              ⚠ Payment link is currently unavailable. Please try again later.
+            <p v-if="!sellPageValid" class="ld-step-hint ld-warning">
+              ⚠ {{ linkErrors.find(e => e.includes('storefront') || e.includes('payment data')) || 'Seller storefront is not available.' }}
             </p>
           </li>
         </ol>
