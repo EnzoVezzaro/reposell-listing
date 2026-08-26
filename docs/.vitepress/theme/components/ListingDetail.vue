@@ -2,7 +2,8 @@
 /**
  * ListingDetail — renders the full detail page for a single listing.
  * Reads from /registry/listings.json at runtime; receives listingId via props
- * from the generated markdown page.
+ * from the generated markdown page. Fetches Discussion stats from GitHub's
+ * public GraphQL API (no auth required for reads).
  */
 import { ref, onMounted, computed } from 'vue'
 import { withBase } from 'vitepress'
@@ -13,6 +14,8 @@ const props = defineProps({
 
 const state = ref('loading')
 const listing = ref(null)
+const discussionStats = ref({ comments: 0, reactions: 0 })
+const discussionLoading = ref(false)
 
 function money(amount, currency) {
   if (amount === null || amount === undefined) return ''
@@ -39,6 +42,46 @@ const githubUrl = computed(() => {
   return `https://github.com/${listing.value.repository}`
 })
 
+const discussionUrl = computed(() => {
+  const community = listing.value?.community?.github
+  if (!community?.discussion_url) return null
+  return community.discussion_url
+})
+
+const discussionNumber = computed(() => {
+  return listing.value?.community?.github?.discussion_number ?? null
+})
+
+async function fetchDiscussionStats(owner, repo, number) {
+  try {
+    const query = `
+      query ($owner: String!, $name: String!, $number: Int!) {
+        repository(owner: $owner, name: $name) {
+          discussion(number: $number) {
+            comments { totalCount }
+            reactions { totalCount }
+          }
+        }
+      }
+    `
+    const res = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query, variables: { owner, name: repo, number } }),
+    })
+    const json = await res.json()
+    const d = json?.data?.repository?.discussion
+    if (d) {
+      discussionStats.value = {
+        comments: d.comments?.totalCount ?? 0,
+        reactions: d.reactions?.totalCount ?? 0,
+      }
+    }
+  } catch {
+    // Discussion stats are optional — degrade gracefully.
+  }
+}
+
 onMounted(async () => {
   try {
     const res = await fetch(withBase('/registry/listings.json'))
@@ -50,6 +93,17 @@ onMounted(async () => {
     } else {
       listing.value = found
       state.value = 'ready'
+
+      // Fetch Discussion stats if available.
+      const community = found.community?.github
+      if (community?.discussion_number && community?.repository) {
+        discussionLoading.value = true
+        const [repoOwner, repoName] = community.repository.split('/')
+        if (repoOwner && repoName) {
+          await fetchDiscussionStats(repoOwner, repoName, community.discussion_number)
+        }
+        discussionLoading.value = false
+      }
     }
   } catch {
     state.value = 'error'
@@ -136,6 +190,24 @@ onMounted(async () => {
         </ol>
       </div>
 
+      <div v-if="discussionUrl" class="ld-detail-section ld-detail-community">
+        <h2>Community</h2>
+        <div class="ld-community-stats">
+          <span v-if="!discussionLoading" class="ld-stat">
+            <span class="ld-stat-icon">💬</span>
+            {{ discussionStats.comments }} {{ discussionStats.comments === 1 ? 'comment' : 'comments' }}
+          </span>
+          <span v-if="!discussionLoading" class="ld-stat">
+            <span class="ld-stat-icon">👍</span>
+            {{ discussionStats.reactions }} {{ discussionStats.reactions === 1 ? 'reaction' : 'reactions' }}
+          </span>
+          <span v-if="discussionLoading" class="ld-stat ld-stat--loading">Loading…</span>
+        </div>
+        <a :href="discussionUrl" class="ld-btn ld-btn--community" target="_blank" rel="noopener">
+          Join Discussion ↗
+        </a>
+      </div>
+
       <div class="ld-detail-section ld-detail-about">
         <h2>About this listing</h2>
         <dl class="ld-detail-meta">
@@ -147,6 +219,10 @@ onMounted(async () => {
           <dd>{{ money(listing.amount, listing.currency) }}</dd>
           <dt>Sell endpoint</dt>
           <dd><a :href="listing.sell_url" target="_blank" rel="noopener">{{ listing.sell_url }}</a></dd>
+          <template v-if="discussionNumber">
+            <dt>Discussion</dt>
+            <dd><a :href="discussionUrl" target="_blank" rel="noopener">#{{ discussionNumber }}</a></dd>
+          </template>
         </dl>
       </div>
     </template>
@@ -184,6 +260,14 @@ onMounted(async () => {
 .ld-btn:hover { opacity: 0.9; text-decoration: none; }
 .ld-btn--primary { background: var(--vp-c-brand-1); color: var(--vp-c-white); }
 .ld-btn--secondary { background: transparent; color: var(--vp-c-brand-1); border: 1px solid var(--vp-c-brand-1); }
+.ld-btn--community { background: var(--vp-c-default-soft); color: var(--vp-c-text-1); border: 1px solid var(--vp-c-divider); }
+
+.ld-detail-community { background: var(--vp-c-bg-soft); border-radius: 12px; padding: 1.2rem 1.4rem; }
+.ld-detail-community h2 { border: none; padding: 0; margin-bottom: 0.8rem; }
+.ld-community-stats { display: flex; gap: 1.5rem; margin-bottom: 1rem; }
+.ld-stat { display: flex; align-items: center; gap: 0.4rem; font-size: 0.92rem; color: var(--vp-c-text-2); }
+.ld-stat-icon { font-size: 1rem; }
+.ld-stat--loading { font-style: italic; }
 
 .ld-detail-about dl { display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem; font-size: 0.9rem; }
 .ld-detail-about dt { font-weight: 600; color: var(--vp-c-text-2); }

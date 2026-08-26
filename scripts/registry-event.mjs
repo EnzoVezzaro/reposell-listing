@@ -4,7 +4,7 @@
  * Receives a validated `reposell.event/v1` publication event dispatched by
  * the RepoSell publisher and mutates the canonical registry:
  *
- *   listing.created    → write listing/<id>.json
+ *   listing.created    → write listing/<id>.json + create Discussion
  *   listing.updated    → write listing/<id>.json (replace)
  *   listing.unpublished /
  *   listing.deleted    → remove listing/<id>.json
@@ -13,13 +13,18 @@
  *   federation/v1/snapshot.json   full materialized index
  *   federation/v1/events.json     append-only event log
  *
- * This script is intentionally dumb: it trusts the event envelope (the
- * dispatcher is the RepoSell publisher) and only validates shape.
+ * Discussions are created on first publish (listing.created) only.
+ * Each listing gets its own Discussion thread in the repository.
  */
 
 import { readdir, readFile, writeFile, mkdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+
+const GITHUB_TOKEN = process.env['GITHUB_TOKEN'] ?? process.env['GH_TOKEN'] ?? '';
+const REPO_OWNER = 'EnzoVezzaro';
+const REPO_NAME = 'reposell-listing';
+const DISCUSSION_CATEGORY = 'Announcements';
 
 const listingDir = path.resolve('listing');
 const federationDir = path.resolve('federation/v1');
@@ -27,6 +32,90 @@ const federationDir = path.resolve('federation/v1');
 function fail(reason) {
   console.error(`✗ registry event rejected: ${reason}`);
   process.exit(1);
+}
+
+async function githubGraphQL(query, variables = {}) {
+  if (!GITHUB_TOKEN) {
+    console.warn('• no GITHUB_TOKEN — skipping Discussion creation');
+    return null;
+  }
+  const res = await fetch('https://api.github.com/graphql', {
+    method: 'POST',
+    headers: {
+      authorization: `bearer ${GITHUB_TOKEN}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors?.length > 0) {
+    console.warn(`• GitHub GraphQL error: ${json.errors.map((e) => e.message).join(', ')}`);
+    return null;
+  }
+  return json.data;
+}
+
+let cachedDiscussionCategoryId = null;
+async function getDiscussionCategoryId() {
+  if (cachedDiscussionCategoryId !== null) return cachedDiscussionCategoryId;
+  const data = await githubGraphQL(`
+    query ($owner: String!, $name: String!, $slug: String!) {
+      repository(owner: $owner, name: $name) {
+        discussionCategories(first: 10) {
+          nodes { id slug name }
+        }
+      }
+    }
+  `, { owner: REPO_OWNER, name: REPO_NAME, slug: DISCUSSION_CATEGORY.toLowerCase() });
+  const cat = data?.repository?.discussionCategories?.nodes?.find(
+    (c) => c.slug === DISCUSSION_CATEGORY.toLowerCase() || c.name.toLowerCase() === DISCUSSION_CATEGORY.toLowerCase(),
+  );
+  if (cat === undefined) {
+    console.warn(`• discussion category "${DISCUSSION_CATEGORY}" not found — skipping Discussion creation`);
+    return null;
+  }
+  cachedDiscussionCategoryId = cat.id;
+  return cat.id;
+}
+
+async function createDiscussion(title, body) {
+  const categoryId = await getDiscussionCategoryId();
+  if (categoryId === null) return null;
+  const data = await githubGraphQL(`
+    mutation ($repoId: ID!, $catId: ID!, $title: String!, $body: String!) {
+      createDiscussion(input: { repositoryId: $repoId, categoryId: $catId, title: $title, body: $body }) {
+        discussion { number url }
+      }
+    }
+  `, {
+    repoId: (await githubGraphQL(`
+      query ($owner: String!, $name: String!) {
+        repository(owner: $owner, name: $name) { id }
+      }
+    `, { owner: REPO_OWNER, name: REPO_NAME }))?.repository?.id ?? '',
+    catId: categoryId,
+    title,
+    body,
+  });
+  return data?.createDiscussion?.discussion ?? null;
+}
+
+async function getDiscussionStats(number) {
+  const data = await githubGraphQL(`
+    query ($owner: String!, $name: String!, $number: Int!) {
+      repository(owner: $owner, name: $name) {
+        discussion(number: $number) {
+          comments { totalCount }
+          reactions { totalCount }
+        }
+      }
+    }
+  `, { owner: REPO_OWNER, name: REPO_NAME, number });
+  const d = data?.repository?.discussion;
+  return {
+    comments: d?.comments?.totalCount ?? 0,
+    reactions: d?.reactions?.totalCount ?? 0,
+  };
 }
 
 async function readPayload() {
@@ -137,6 +226,12 @@ async function main() {
       console.log(`• ${id}.json already absent`);
     }
   } else {
+    // For updates, preserve the existing community/discussion data.
+    let existing = {};
+    if (action === 'listing.updated' && before.has(`${id}.json`)) {
+      existing = before.get(`${id}.json`);
+    }
+
     const enriched = {
       ...payload.record,
       id,
@@ -145,8 +240,39 @@ async function main() {
         sell_path: payload.source?.sell_path ?? '/sell',
         ...(payload.source?.commit !== undefined ? { commit: payload.source.commit } : {}),
       },
+      ...(existing.community !== undefined ? { community: existing.community } : {}),
       published_at: new Date().toISOString(),
     };
+
+    // Create a Discussion on first publish (listing.created only).
+    if (action === 'listing.created' && GITHUB_TOKEN) {
+      const repo = enriched.product?.repository ?? '(unknown)';
+      const release = enriched.product?.release ?? '';
+      const title = repo.split('/')[1] ?? repo;
+      const body = [
+        `**${repo}** ${release ? `@ ${release}` : ''} is now listed on the reposell marketplace.`,
+        '',
+        `- **Sell endpoint**: ${enriched.seller?.sell_url ?? '—'}`,
+        `- **Discovery contribution**: ${enriched.listing?.discovery_price?.amount ?? 0} ${enriched.listing?.discovery_price?.currency ?? ''}`,
+        '',
+        '---',
+        '',
+        'Ask questions, share feedback, or discuss licensing here.',
+        `Buy from the seller's storefront: ${enriched.seller?.sell_url ?? '—'}`,
+      ].join('\n');
+      const discussion = await createDiscussion(title, body);
+      if (discussion !== null) {
+        enriched.community = {
+          github: {
+            repository: `${REPO_OWNER}/${REPO_NAME}`,
+            discussion_number: discussion.number,
+            discussion_url: discussion.url,
+          },
+        };
+        console.log(`✓ created Discussion #${discussion.number}: ${discussion.url}`);
+      }
+    }
+
     await mkdir(listingDir, { recursive: true });
     await writeJson(recordFile, `${JSON.stringify(enriched, null, 2)}\n`);
     console.log(`✓ wrote ${id}.json (${action})`);
