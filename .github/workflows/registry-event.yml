@@ -1,0 +1,61 @@
+name: registry-event
+
+# Event-driven registry mutation (spec §6 — no PRs). The RepoSell publisher
+# announces verified publications via repository_dispatch; this workflow is
+# the ONLY writer of listing/*.json outside discovery-sync's idempotent
+# link backfill. The listing repository stays a dumb materialized index.
+
+on:
+  repository_dispatch:
+    types:
+      - listing.created
+      - listing.updated
+      - listing.unpublished
+      - listing.deleted
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: registry
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.action, 'listing.')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Apply registry event
+        env:
+          EVENT_TYPE: ${{ github.event.action }}
+          EVENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: |
+          if [ "$EVENT_TYPE" = "workflow_dispatch" ]; then
+            echo "Manual run without an event — registry unchanged."
+            exit 0
+          fi
+          printf '%s' "$EVENT_PAYLOAD" | bun scripts/registry-event.mjs
+
+      - name: Commit registry mutation + federation surface
+        run: |
+          git config user.name "reposell-registry[bot]"
+          git config user.email "registry@reposell.dev"
+          git add listing/ federation/
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git commit -m "registry: ${EVENT_TYPE:-manual} — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push
