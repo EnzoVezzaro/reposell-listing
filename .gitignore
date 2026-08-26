@@ -42,4 +42,3 @@ temp/
 *.tmp
 # VitePress
 docs/.vitepress/cache/
-docs/public/registry/listings.json
