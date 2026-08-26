@@ -14,6 +14,10 @@ The official reposell listing — a static discovery directory with verification
 - **Federation snapshot** — machine-readable `federation/v1/snapshot.json` for community instances
 - **Community Discussion** — GitHub Discussions per listing for buyer community
 - **Listing detail pages** — per-listing pages with repo info, README, and purchase flow
+- **Payment link validation** — CI validates all Stripe payment links are active; frontend blocks buttons for invalid links
+- **GitHub Device Flow** — connect GitHub account before payment (zero-server, no client secret)
+- **Stripe redirect after payment** — buyers return to listing page with `?session_id` confirmation
+- **README display** — full markdown README shown from listing record (no GitHub API calls)
 
 ## Quickstart
 
@@ -40,8 +44,10 @@ Runs after every merge to `main` that touches `listing/`:
 
 1. **Promote** merged PR payloads into canonical registry records
 2. **Provision** immutable discovery Payment Links via Stripe API
-3. **Regenerate** the public index (`docs/public/registry/listings.json`)
-4. **Commit** all changes back to the repository
+3. **Validate** all payment links are active via Stripe API (marks inactive links)
+4. **Create Discussions** for new listings
+5. **Regenerate** the public index (`docs/public/registry/listings.json`)
+6. **Commit** all changes back to the repository
 
 ### `verify-pr.yml` (on PR)
 
