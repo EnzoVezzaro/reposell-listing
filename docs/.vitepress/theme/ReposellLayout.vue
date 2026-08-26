@@ -51,7 +51,7 @@ watchEffect(applyAppearance)
 const stars = ref('')
 const version = ref('')
 
-const fallbackVersion = 'v0.1.1'
+const fallbackVersion = `v${globalThis.__APP_VERSION__ ?? '0.1.1'}`
 
 function formatStars(n) {
   return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n)

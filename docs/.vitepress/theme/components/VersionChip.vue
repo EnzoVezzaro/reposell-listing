@@ -1,5 +1,5 @@
 <script setup>
-const version = 'v0.1.1'
+const version = `v${globalThis.__APP_VERSION__ ?? '0.1.1'}`
 </script>
 
 <template>
