@@ -11,6 +11,8 @@ import { withBase } from 'vitepress'
 
 const GITHUB_CLIENT_ID = 'Iv23lidhennqrdpdFUAT'
 const CORS_PROXY = 'https://corsproxy.io/?url='
+const GH_TOKEN_KEY = 'rs-listing-gh-token'
+const GH_USER_KEY = 'rs-listing-gh-user'
 
 const props = defineProps({
   listingId: { type: String, required: true },
@@ -137,7 +139,14 @@ async function pollForToken(code, intervalMs, deadline) {
         const uRes = await fetch('https://api.github.com/user', {
           headers: { Authorization: `Bearer ${data.access_token}` },
         })
-        if (uRes.ok) ghUser.value = await uRes.json()
+        if (uRes.ok) {
+          ghUser.value = await uRes.json()
+          // Persist to sessionStorage so login survives page refresh
+          try {
+            sessionStorage.setItem(GH_TOKEN_KEY, data.access_token)
+            sessionStorage.setItem(GH_USER_KEY, JSON.stringify(ghUser.value))
+          } catch { /* ignore */ }
+        }
       } catch { /* ignore */ }
       return
     }
@@ -173,6 +182,10 @@ function disconnectGithub() {
   ghUser.value = null
   ghState.value = 'idle'
   stopPolling()
+  try {
+    sessionStorage.removeItem(GH_TOKEN_KEY)
+    sessionStorage.removeItem(GH_USER_KEY)
+  } catch { /* ignore */ }
 }
 
 onBeforeUnmount(() => stopPolling())
@@ -195,6 +208,17 @@ function checkPaymentConfirmation() {
 // --- init ---
 
 onMounted(async () => {
+  // Restore GitHub session from sessionStorage
+  try {
+    const savedToken = sessionStorage.getItem(GH_TOKEN_KEY)
+    const savedUser = sessionStorage.getItem(GH_USER_KEY)
+    if (savedToken && savedUser) {
+      ghToken.value = savedToken
+      ghUser.value = JSON.parse(savedUser)
+      ghState.value = 'connected'
+    }
+  } catch { /* ignore */ }
+
   try {
     const res = await fetch(withBase('/registry/listings.json'))
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
