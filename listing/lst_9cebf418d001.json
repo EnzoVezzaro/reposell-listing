@@ -9,7 +9,8 @@
       "price_id": "price_1U8VmtLLTqvOlSTCAPDclSfB",
       "product_id": "prod_V8nMvffsQvjYWs",
       "payment_link_url": "https://buy.stripe.com/test_dRm3cwevX1nM0s25W1frW03",
-      "payment_link_active": true
+      "payment_link_active": false,
+      "payment_link_error": "Stripe API returned HTTP 404"
     }
   },
   "product": {

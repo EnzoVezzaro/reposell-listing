@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-26T19:46:51.419Z",
+  "updated": "2026-08-26T19:51:34.232Z",
   "listings": [
     {
       "id": "lst_9cebf418d001",
@@ -8,8 +8,8 @@
       "description": "",
       "sell_url": "https://EnzoVezzaro.github.io/reposell-example/sell/",
       "payment_link": "https://buy.stripe.com/test_dRm3cwevX1nM0s25W1frW03",
-      "payment_link_active": true,
-      "payment_link_error": null,
+      "payment_link_active": false,
+      "payment_link_error": "Stripe API returned HTTP 404",
       "amount": 5,
       "currency": "USD",
       "community": null,
