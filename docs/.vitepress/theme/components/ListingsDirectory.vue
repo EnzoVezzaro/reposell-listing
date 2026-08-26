@@ -20,6 +20,11 @@ function shortRepo(repository) {
   return repository.replace(/^https:\/\/github\.com\//, '')
 }
 
+function toolUrl(entry) {
+  const slug = entry.repository.replace('/', '-').toLowerCase()
+  return withBase(`/registry/tools/${slug}/`)
+}
+
 onMounted(async () => {
   try {
     const res = await fetch(withBase('/registry/listings.json'))
@@ -58,8 +63,7 @@ onMounted(async () => {
           </span>
         </div>
         <div class="ld-actions">
-          <a v-if="entry.payment_link" class="ld-btn" :href="entry.payment_link" rel="nofollow" target="_blank">Buy from seller</a>
-          <a v-if="entry.sell_url" class="ld-btn ld-btn--ghost" :href="entry.sell_url" target="_blank" rel="noopener">/sell endpoint</a>
+          <a class="ld-btn" :href="toolUrl(entry)">View details →</a>
         </div>
       </article>
     </div>

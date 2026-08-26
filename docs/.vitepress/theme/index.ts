@@ -27,6 +27,7 @@ import FaultyTerminal from './components/FaultyTerminal.vue'
 import HeroBackground from './components/HeroBackground.vue'
 import LandingHero from './components/LandingHero.vue'
 import ListingsDirectory from './components/ListingsDirectory.vue'
+import ListingDetail from './components/ListingDetail.vue'
 
 // Activate the saved theme layer before first paint when possible.
 if (typeof localStorage !== 'undefined') {
@@ -55,5 +56,6 @@ export default {
     app.component('HeroBackground', HeroBackground)
     app.component('LandingHero', LandingHero)
     app.component('ListingsDirectory', ListingsDirectory)
+    app.component('ListingDetail', ListingDetail)
   },
 } satisfies Theme
