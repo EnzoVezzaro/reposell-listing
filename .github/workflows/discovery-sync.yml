@@ -37,6 +37,11 @@ jobs:
       - name: Regenerate public index
         run: node scripts/build-listings-index.mjs
 
+      - name: Create Discussion for new listings
+        run: node scripts/create-discussions.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Commit generated registry updates
         run: |
           if [[ -n "$(git status --porcelain)" ]]; then
