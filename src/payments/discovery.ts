@@ -159,6 +159,8 @@ export async function ensureDiscoveryLink(input: {
   const paymentLink = await stripeRequest(fetchImpl, apiKey, 'POST', 'payment_links', {
     'line_items[0][price]': priceId,
     'line_items[0][quantity]': '1',
+    'after_completion[type]': 'redirect',
+    'after_completion[redirect][url]': `${link.baseUrl}/registry/tools/${link.repository.replace('/', '-').toLowerCase()}/`,
     ...metadataFields(link),
   });
   const linkId = paymentLink.id;

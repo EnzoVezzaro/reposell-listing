@@ -245,7 +245,6 @@ onMounted(async () => {
               v-if="listing.payment_link"
               :href="listing.payment_link"
               class="ld-btn ld-btn--primary"
-              target="_blank"
               rel="nofollow noopener"
               @click="markContributionPaid"
             >
