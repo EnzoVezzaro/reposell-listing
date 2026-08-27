@@ -75,7 +75,7 @@ async function connectGithub() {
     const res = await proxyFetch('https://github.com/login/device/code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'read:user user:email' }),
+      body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'repo' }),
     })
     const data = await res.json()
 
