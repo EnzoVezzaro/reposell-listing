@@ -42,3 +42,5 @@ temp/
 *.tmp
 # VitePress
 docs/.vitepress/cache/
+
+/tests/visual/
