@@ -2,17 +2,18 @@
 /**
  * ListingDetail — renders the full detail page for a single listing.
  * ALL data comes from the listing record (captured during reposell listing publish).
- * No GitHub API calls — works for private repos.
  *
- * Flow: GitHub login → pay contribution → Stripe redirect with session_id → storefront button enabled.
+ * Flow: WorkOS AuthKit GitHub login → pay discovery contribution → Stripe
+ * redirect with session_id → server-verified contribution → storefront
+ * handoff enabled.
+ *
+ * Auth lives in the reposell access worker (access.reposell.dev). The session
+ * cookie is HttpOnly — this page only sends it along via `credentials: 'include'`.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
 
-const GITHUB_CLIENT_ID = 'Iv23lidhennqrdpdFUAT'
-const CORS_PROXY = 'https://corsproxy.io/?url='
-const GH_TOKEN_KEY = 'rs-listing-gh-token'
-const GH_USER_KEY = 'rs-listing-gh-user'
+const ACCESS_API = 'https://access.reposell.dev'
 
 const props = defineProps({
   listingId: { type: String, required: true },
@@ -22,16 +23,10 @@ const props = defineProps({
 const state = ref('loading')
 const listing = ref(null)
 
-// --- GitHub Device Flow ---
-const ghState = ref('idle') // idle | device | polling | connected | error
-const ghError = ref('')
-const deviceCode = ref('')
-const userCode = ref('')
-const verificationUri = ref('')
-const countdown = ref(0)
-const ghToken = ref('')
-const ghUser = ref(null)
-let pollTimer = null
+// --- WorkOS AuthKit session ---
+const authState = ref('idle') // idle | loading | connected | error
+const authError = ref('')
+const authUser = ref(null)
 
 // --- payment ---
 const contributionPaid = ref(false)
@@ -40,24 +35,16 @@ const contributionPaid = ref(false)
 const paymentLinkActive = computed(() => listing.value?.payment_link_active !== false)
 const paymentLinkError = computed(() => listing.value?.payment_link_error ?? null)
 
-function proxyFetch(url, options) {
-  return fetch(`${CORS_PROXY}${encodeURIComponent(url)}`, options)
-}
-
 const owner = computed(() => listing.value?.repository?.split('/')[0] ?? '')
 const repoName = computed(() => listing.value?.repository?.split('/')[1] ?? '')
 const githubUrl = computed(() => listing.value ? `https://github.com/${listing.value.repository}` : '')
 const discussionUrl = computed(() => listing.value?.community?.github?.discussion_url ?? null)
 const discussionNumber = computed(() => listing.value?.community?.github?.discussion_number ?? null)
 
-const ghConnected = computed(() => ghState.value === 'connected')
+const connected = computed(() => authState.value === 'connected')
+const displayName = computed(() => authUser.value?.github_login || authUser.value?.email || '')
 
-const paymentUrl = computed(() => {
-  if (!listing.value?.payment_link) return ''
-  // Pass the GitHub token via state param so we know who's paying
-  const state = btoa(JSON.stringify({ listing_id: listing.value.id, gh_user: ghUser.value?.login }))
-  return `${listing.value.payment_link}?client_reference_id=${encodeURIComponent(state)}`
-})
+const paymentUrl = computed(() => listing.value?.payment_link ?? '')
 
 function money(amount, currency) {
   if (amount === null || amount === undefined) return ''
@@ -65,148 +52,97 @@ function money(amount, currency) {
   return currency ? `${formatted} ${currency}` : formatted
 }
 
-// --- GitHub Device Flow ---
+// --- WorkOS AuthKit ---
 
-async function connectGithub() {
-  ghState.value = 'device'
-  ghError.value = ''
+const loginUrl = computed(() => {
+  const redirect = window.location.origin + window.location.pathname
+  return `${ACCESS_API}/api/auth/login?redirect_uri=${encodeURIComponent(redirect)}`
+})
 
+async function checkSession() {
+  authState.value = 'loading'
+  authError.value = ''
   try {
-    const res = await proxyFetch('https://github.com/login/device/code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'repo' }),
-    })
-    const data = await res.json()
-
-    if (data.error) {
-      ghState.value = 'error'
-      ghError.value = data.error_description || 'GitHub rejected the request — try again.'
-      return
+    const res = await fetch(`${ACCESS_API}/api/auth/me`, { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      authUser.value = data.user
+      authState.value = 'connected'
+    } else {
+      authState.value = res.status === 401 ? 'idle' : 'error'
+      if (authState.value === 'error') authError.value = 'Could not check your session.'
     }
-
-    deviceCode.value = data.device_code
-    userCode.value = data.user_code
-    verificationUri.value = data.verification_uri
-    window.open(data.verification_uri, '_blank', 'noopener')
-    startPolling(data.device_code, data.interval || 5, data.expires_in || 900)
   } catch {
-    ghState.value = 'error'
-    ghError.value = 'Could not reach GitHub — check your connection.'
+    authState.value = 'error'
+    authError.value = 'Could not reach the account service.'
   }
 }
 
-function startPolling(code, interval, expiresIn) {
-  countdown.value = expiresIn
-  const deadline = Date.now() + expiresIn * 1000
-
-  pollTimer = setInterval(() => {
-    countdown.value = Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
-    if (countdown.value <= 0) {
-      stopPolling()
-      ghState.value = 'error'
-      ghError.value = 'Device code expired — try again.'
-    }
-  }, 1000)
-
-  pollForToken(code, interval * 1000, deadline)
+function startLogin() {
+  window.location.href = loginUrl.value
 }
 
-async function pollForToken(code, intervalMs, deadline) {
-  if (Date.now() >= deadline) {
-    stopPolling()
-    ghState.value = 'error'
-    ghError.value = 'Device code expired — try again.'
-    return
-  }
-
-  await new Promise((r) => setTimeout(r, intervalMs))
-
+async function disconnect() {
+  authUser.value = null
+  authState.value = 'idle'
+  contributionPaid.value = false
   try {
-    const res = await proxyFetch('https://github.com/login/oauth/access_token', {
+    const res = await fetch(`${ACCESS_API}/api/auth/logout`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      credentials: 'include',
+    })
+    const data = await res.json().catch(() => ({}))
+    if (data.logout_url) window.location.href = data.logout_url
+  } catch { /* ignore */ }
+}
+
+async function checkContribution() {
+  if (!connected.value || !listing.value) return
+  try {
+    const res = await fetch(
+      `${ACCESS_API}/api/access/status?listing_id=${encodeURIComponent(listing.value.id)}`,
+      { credentials: 'include' },
+    )
+    if (res.ok) {
+      const data = await res.json()
+      contributionPaid.value = data.contributed === true
+    }
+  } catch { /* ignore */ }
+}
+
+// Server-validates the paid Stripe Checkout Session (RepoSell's account) and
+// records access for the authenticated user.
+async function confirmContribution(checkoutSessionId) {
+  if (!connected.value || !listing.value) return false
+  try {
+    const res = await fetch(`${ACCESS_API}/api/access/contribute`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: GITHUB_CLIENT_ID,
-        device_code: code,
-        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+        listing_id: listing.value.id,
+        checkout_session_id: checkoutSessionId,
       }),
     })
-    const data = await res.json()
-
-    if (data.access_token) {
-      stopPolling()
-      ghToken.value = data.access_token
-      ghState.value = 'connected'
-      // Fetch user info
-      try {
-        const uRes = await fetch('https://api.github.com/user', {
-          headers: { Authorization: `Bearer ${data.access_token}` },
-        })
-        if (uRes.ok) {
-          ghUser.value = await uRes.json()
-          // Persist to sessionStorage so login survives page refresh
-          try {
-            sessionStorage.setItem(GH_TOKEN_KEY, data.access_token)
-            sessionStorage.setItem(GH_USER_KEY, JSON.stringify(ghUser.value))
-          } catch { /* ignore */ }
-        }
-      } catch { /* ignore */ }
-      return
-    }
-
-    if (data.error === 'authorization_pending') {
-      pollForToken(code, intervalMs, deadline)
-      return
-    }
-
-    if (data.error === 'slow_down') {
-      pollForToken(code, intervalMs + 5000, deadline)
-      return
-    }
-
-    // Other errors (access_denied, expired_token, etc.)
-    stopPolling()
-    ghState.value = 'error'
-    ghError.value = data.error_description || 'Authorization failed — try again.'
+    return res.ok
   } catch {
-    pollForToken(code, intervalMs, deadline)
+    return false
   }
 }
 
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-}
-
-function disconnectGithub() {
-  ghToken.value = ''
-  ghUser.value = null
-  ghState.value = 'idle'
-  stopPolling()
-  try {
-    sessionStorage.removeItem(GH_TOKEN_KEY)
-    sessionStorage.removeItem(GH_USER_KEY)
-  } catch { /* ignore */ }
-}
-
-onBeforeUnmount(() => stopPolling())
-
-// --- payment confirmation from Stripe redirect URL ---
-
-function checkPaymentConfirmation() {
-  try {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('session_id')) {
-      contributionPaid.value = true
-      // Clean the URL so the session_id isn't visible
-      const url = new URL(window.location.href)
-      url.searchParams.delete('session_id')
-      window.history.replaceState({}, '', url.toString())
-    }
-  } catch { /* ignore */ }
+function handlePaymentReturn() {
+  const params = new URLSearchParams(window.location.search)
+  const sid = params.get('session_id')
+  if (!sid || !listing.value) return
+  // Clean the URL so the session_id isn't visible
+  const url = new URL(window.location.href)
+  url.searchParams.delete('session_id')
+  window.history.replaceState({}, '', url.toString())
+  // Optimistically unlock; reconcile with the server afterward.
+  contributionPaid.value = true
+  confirmContribution(sid).then((ok) => {
+    if (!ok) checkContribution()
+  })
 }
 
 // --- runtime link validation ---
@@ -267,16 +203,7 @@ async function validateSellPage(sellUrl) {
 // --- init ---
 
 onMounted(async () => {
-  // Restore GitHub session from sessionStorage
-  try {
-    const savedToken = sessionStorage.getItem(GH_TOKEN_KEY)
-    const savedUser = sessionStorage.getItem(GH_USER_KEY)
-    if (savedToken && savedUser) {
-      ghToken.value = savedToken
-      ghUser.value = JSON.parse(savedUser)
-      ghState.value = 'connected'
-    }
-  } catch { /* ignore */ }
+  await checkSession()
 
   try {
     const res = await fetch(withBase('/registry/listings.json'))
@@ -285,17 +212,22 @@ onMounted(async () => {
     const found = (data.listings ?? []).find((l) => l.id === props.listingId)
     if (!found) {
       state.value = 'not-found'
-    } else {
-      listing.value = found
-      state.value = 'ready'
-      checkPaymentConfirmation()
-
-      // Runtime validation: check both links in parallel, then unlock payment
-      await Promise.all([
-        validateDiscoveryLink(found.payment_link),
-        validateSellPage(found.sell_url),
-      ])
       linksValidating.value = false
+      return
+    }
+    listing.value = found
+    state.value = 'ready'
+
+    // Runtime validation: check both links in parallel, then unlock payment
+    await Promise.all([
+      validateDiscoveryLink(found.payment_link),
+      validateSellPage(found.sell_url),
+    ])
+    linksValidating.value = false
+
+    if (connected.value) {
+      handlePaymentReturn()
+      await checkContribution()
     }
   } catch {
     state.value = 'error'
@@ -347,32 +279,26 @@ onMounted(async () => {
       <div class="ld-detail-section ld-gh-section">
         <h2>GitHub account</h2>
 
-        <template v-if="ghConnected && ghUser">
+        <template v-if="connected && authUser">
           <div class="ld-gh-connected">
             <span class="ld-gh-avatar">✓</span>
-            <span class="ld-gh-user">@{{ ghUser.login }}</span>
-            <button class="ld-gh-disconnect" @click="disconnectGithub">Disconnect</button>
+            <span class="ld-gh-user">@{{ displayName }}</span>
+            <button class="ld-gh-disconnect" @click="disconnect">Disconnect</button>
           </div>
         </template>
 
-        <template v-else-if="ghState === 'device' || ghState === 'polling'">
-          <div class="ld-gh-device">
-            <p class="ld-gh-instructions">
-              Enter this code on GitHub:
-              <strong class="ld-gh-code">{{ userCode }}</strong>
-            </p>
-            <p class="ld-gh-timer">{{ countdown }}s remaining</p>
-          </div>
+        <template v-else-if="authState === 'loading'">
+          <p class="ld-gh-hint">Checking your session…</p>
         </template>
 
-        <template v-else-if="ghState === 'error'">
-          <p class="ld-gh-error">{{ ghError }}</p>
-          <button class="ld-btn ld-btn--primary" @click="connectGithub">Try again</button>
+        <template v-else-if="authState === 'error'">
+          <p class="ld-gh-error">{{ authError }}</p>
+          <button class="ld-btn ld-btn--primary" @click="startLogin">Try again</button>
         </template>
 
         <template v-else>
-          <p class="ld-gh-hint">Connect your GitHub account to purchase this listing.</p>
-          <button class="ld-btn ld-btn--primary" @click="connectGithub">Connect GitHub</button>
+          <p class="ld-gh-hint">Continue with GitHub to purchase this listing.</p>
+          <button class="ld-btn ld-btn--primary" @click="startLogin">Continue with GitHub</button>
         </template>
       </div>
 
@@ -393,12 +319,12 @@ onMounted(async () => {
               their license revenue.
             </p>
             <!-- Validating links — block all payment -->
-            <p v-if="linksValidating && ghConnected && !contributionPaid" class="ld-step-hint">
+            <p v-if="linksValidating && connected && !contributionPaid" class="ld-step-hint">
               Validating payment links…
             </p>
             <!-- Links validated: show Pay or Warning -->
             <a
-              v-if="listing.payment_link && ghConnected && !contributionPaid && !linksValidating && discoveryLinkValid"
+              v-if="listing.payment_link && connected && !contributionPaid && !linksValidating && discoveryLinkValid"
               :href="paymentUrl"
               class="ld-btn ld-btn--primary"
               rel="nofollow noopener"
@@ -406,16 +332,16 @@ onMounted(async () => {
               Pay {{ money(listing.amount, listing.currency) }} contribution
             </a>
             <span
-              v-else-if="listing.payment_link && ghConnected && contributionPaid"
+              v-else-if="listing.payment_link && connected && contributionPaid"
               class="ld-btn ld-btn--paid"
             >
               Paid {{ money(listing.amount, listing.currency) }} contribution ✓
             </span>
-            <p v-if="listing.payment_link && ghConnected && !contributionPaid && !linksValidating && !discoveryLinkValid" class="ld-step-hint ld-warning">
+            <p v-if="listing.payment_link && connected && !contributionPaid && !linksValidating && !discoveryLinkValid" class="ld-step-hint ld-warning">
               ⚠ {{ linkErrors[0] || 'Payment link is currently unavailable.' }}
             </p>
-            <p v-if="!ghConnected" class="ld-step-hint">
-              Connect your GitHub account above to proceed with payment.
+            <p v-if="!connected" class="ld-step-hint">
+              Continue with your GitHub account above to proceed with payment.
             </p>
           </li>
           <li>

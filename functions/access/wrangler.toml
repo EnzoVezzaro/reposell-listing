@@ -1,0 +1,28 @@
+name = "reposell-listing-access"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+# D1 (SQLite) for the discovery-contribution access ledger.
+[[d1_databases]]
+binding = "DATABASE"
+database_name = "reposell-listing-access"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# KV for OAuth state (PKCE) + cached WorkOS JWKS.
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+routes = [
+  { pattern = "access.reposell.dev/*", zone_name = "reposell.dev" }
+]
+
+# Secrets are set via: npx wrangler secret put <NAME>
+#   WORKOS_CLIENT_ID         (test or prod client id, e.g. client_01M1YMB9FT96Z7D4H06ACT1ENA)
+#   WORKOS_API_KEY           (test sk_test_... or prod sk_a2... — MUST match WORKOS_CLIENT_ID env)
+#   WORKOS_REDIRECT_URI      (https://access.reposell.dev/api/auth/callback — register in WorkOS dashboard)
+#   LISTING_STRIPE_SECRET_KEY (RepoSell's OWN Stripe secret; validates discovery contributions only)
+#   ALLOWED_ORIGINS          (comma-separated, e.g. https://listing.reposell.dev,http://localhost:5173)
+# Optional: WORKOS_API_BASE, COOKIE_SECURE=false (local http dev only)

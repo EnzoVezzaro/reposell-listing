@@ -6,6 +6,7 @@
 
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { main as signIndex } from './registry-signing.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const registryDir = path.join(root, 'listing');
@@ -46,6 +47,16 @@ try {
 await mkdir(path.dirname(outFile), { recursive: true });
 await writeFile(outFile, `${JSON.stringify({ updated: new Date().toISOString(), listings: entries }, null, 2)}\n`);
 console.log(`registry index: ${entries.length} listing(s) → docs/public/registry/listings.json`);
+
+// Sign the published index (D11). No-op locally without the secret; in CI the
+// LISTING_SIGNING_KEY secret enables it. Signing AFTER the write guarantees the
+// signature covers the exact published bytes.
+try {
+  signIndex();
+} catch (error) {
+  console.error(`registry index signing failed: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
 
 // Generate per-listing detail pages
 await mkdir(toolsDir, { recursive: true });

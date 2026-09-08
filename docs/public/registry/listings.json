@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-07T18:23:53.411Z",
+  "updated": "2026-09-08T12:52:17.145Z",
   "listings": [
     {
       "id": "lst_9cebf418d001",
@@ -7,9 +7,9 @@
       "release": "v0.1.0",
       "description": "A minimal Vite + React app for testing the reposell CLI end-to-end.",
       "sell_url": "https://EnzoVezzaro.github.io/reposell-example/sell/",
-      "payment_link": "https://buy.stripe.com/7sY7sM5Sefmp8Ck8Ancs800",
-      "payment_link_active": true,
-      "payment_link_error": null,
+      "payment_link": "https://buy.stripe.com/test_dRm3cwevX1nM0s25W1frW03",
+      "payment_link_active": false,
+      "payment_link_error": "Stripe API returned HTTP 404",
       "amount": 5,
       "currency": "USD",
       "repo_price": 29,

@@ -42,9 +42,32 @@ async function main() {
 
   const request = JSON.parse(await readFile(path.join(dir, files[0]), 'utf8'));
   const sellUrl = request.sell_url ?? request.sell?.url;
-  if (typeof sellUrl !== 'string' || !/^https:\/\//.test(sellUrl)) {
+  if (typeof sellUrl !== 'string' || !sellUrl.startsWith('https://')) {
     fail(`invalid or missing sell_url on the request (${files[0]})`);
   }
+
+  // Schema/request shape (fail-closed on unknown request schemas).
+  if (request.schema !== undefined && request.schema !== 'reposell-listing-request/v1') {
+    fail(`unexpected request schema: ${request.schema}`);
+  }
+
+  // 0. Secret scan — the request must never carry credentials.
+  const serialized = JSON.stringify(request);
+  if (/(sk_(test|live)_|rk_|whsec_)/.test(serialized)) {
+    fail('Stripe secret detected in the listing request — remove it, the request is pointer-only');
+  }
+
+  // 0b. Duplicate/immutability (spec §15): a repository may be listed once.
+  const listedRecords = [];
+  try {
+    for (const f of (await readdir(dir)).filter((f) => f.endsWith('.json'))) {
+      const rec = JSON.parse(await readFile(path.join(dir, f), 'utf8'));
+      if (typeof rec?.product?.repository === 'string') listedRecords.push(rec.product.repository);
+    }
+  } catch {}
+  // Legacy fallback: *.pr.json payloads may not exist on new branches; note
+  // the existing-record check below is informational, the identity check is
+  // authoritative (the PR derives its repository from the live /sell page).
 
   // 1. Live /sell page → embedded document.
   const res = await fetch(sellUrl, { headers: { 'user-agent': 'reposell-listing-ci' } });
@@ -66,6 +89,12 @@ async function main() {
   if (data.repository !== repository) {
     fail(`repository identity mismatch: page declares "${data.repository}", request says "${repository}"`);
   }
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) {
+    fail(`invalid repository slug "${repository}"`);
+  }
+  if (listedRecords.includes(repository)) {
+    fail(`${repository} is already listed (spec §15 duplicate check)`);
+  }
 
   const available = (data.releases ?? []).filter((r) => r.status === 'available' && (r.offers ?? []).length > 0);
   const requestedRelease = request.release ?? available[0]?.version;
@@ -75,6 +104,7 @@ async function main() {
       `release ${requestedRelease ?? '(none requested)'} is not published/available on the /sell page — \`reposell publish\` + push first`,
     );
   }
+  if (!/^v\d+\.\d+\.\d+/.test(release.version)) fail(`invalid release version "${release.version}"`);
   const offer = release.offers[0];
   if (!/^https:\/\/(buy|checkout)\.stripe\.com\//.test(offer.paymentLink ?? '')) {
     fail(`offer for ${release.version} has no valid Stripe Payment Link`);
@@ -85,6 +115,9 @@ async function main() {
   //    default $5 USD per D16 when absent.
   const contribution = data.listing?.contribution ?? { amount: 5, currency: 'USD' };
   if (!(contribution.amount > 0)) fail('seller-declared discovery contribution must be positive');
+  if (typeof contribution.currency !== 'string' || contribution.currency.length !== 3) {
+    fail('seller-declared discovery contribution must use a 3-letter currency');
+  }
 
   const record = {
     schema: 'reposell-listing-record/v1',

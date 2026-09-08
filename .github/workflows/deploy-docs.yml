@@ -29,6 +29,8 @@ jobs:
         run: npm ci
       - name: Regenerate public index
         run: node scripts/build-listings-index.mjs
+        env:
+          LISTING_SIGNING_KEY: ${{ secrets.LISTING_SIGNING_KEY }}
       - name: Build docs
         run: npm run docs:build
       - name: Add CNAME
