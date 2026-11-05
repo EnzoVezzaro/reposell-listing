@@ -51,8 +51,9 @@ console.log(`registry index: ${entries.length} listing(s) → docs/public/regist
 // Sign the published index (D11). No-op locally without the secret; in CI the
 // LISTING_SIGNING_KEY secret enables it. Signing AFTER the write guarantees the
 // signature covers the exact published bytes.
+const requireSigning = process.env['REQUIRE_SIGNING'] === '1';
 try {
-  signIndex();
+  await signIndex({ requireSigning });
 } catch (error) {
   console.error(`registry index signing failed: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);

@@ -31,6 +31,10 @@ jobs:
         run: node scripts/build-listings-index.mjs
         env:
           LISTING_SIGNING_KEY: ${{ secrets.LISTING_SIGNING_KEY }}
+          REQUIRE_SIGNING: '1'
+      # SIG-01: an unsigned or unverifiable index must never reach Pages.
+      - name: Verify signed index
+        run: node scripts/require-signed-index.mjs
       - name: Build docs
         run: npm run docs:build
       - name: Add CNAME

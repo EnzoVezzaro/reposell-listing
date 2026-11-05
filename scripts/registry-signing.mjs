@@ -15,7 +15,7 @@
  * for manifests; only the signed bytes differ (here: the raw published JSON).
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { createHash, createPrivateKey, createPublicKey, sign, verify } from 'node:crypto';
 
@@ -40,6 +40,8 @@ function pkcs8Object(seedB64) {
 function spkiPemFromPrivate(pkcs8Pem) {
   return createPublicKey(pkcs8Pem).export({ type: 'spki', format: 'pem' });
 }
+
+export { spkiPemFromPrivate };
 
 export function rawPublicKeyFromPem(pem) {
   const base64 = pem
@@ -93,23 +95,58 @@ export function readVerificationKeyPem(filePath) {
   return readFileSync(filePath, 'utf8');
 }
 
-/** CLI entry: signs the built index when a key is available (CI secret). */
-export function main() {
+/**
+ * CLI entry: signs the built index when a key is available (CI secret).
+ *
+ * Async because `signIndexBytes` is async — awaiting it is mandatory. When this
+ * was a sync function the awaited signature was serialized as an empty `{}`
+ * object, so the published `.sig` could never verify even with a valid secret.
+ */
+export async function main({ requireSigning = false, registryDir } = {}) {
   const root = path.resolve(import.meta.dirname, '..');
-  const indexFile = path.join(root, 'docs', 'public', 'registry', 'listings.json');
+  const dir = registryDir ?? path.join(root, 'docs', 'public', 'registry');
+  const indexFile = path.join(dir, 'listings.json');
   const index = readFileSync(indexFile, 'utf8');
 
   const seed = process.env['LISTING_SIGNING_KEY'];
-  if (seed === undefined || seed === '') {
-    console.log('✗ no LISTING_SIGNING_KEY — registry index NOT signed (set the Actions secret to enable)');
-    return;
+
+  // --- require-signing gate ---
+  if (requireSigning) {
+    if (seed === undefined || seed === '') {
+      throw new Error(
+        'LISTING_SIGNING_KEY is required but not set (set the Actions secret or REQUIRE_SIGNING=1)',
+      );
+    }
+    // validate seed is base64 of exactly 32 bytes — surface the existing validator error
+    try {
+      base64SeedToPkcs8Pem(seed);
+    } catch (e) {
+      throw new Error(`LISTING_SIGNING_KEY is malformed: ${e.message}`);
+    }
+  } else {
+    // informational / local mode: available only when require mode is off
+    if (seed === undefined || seed === '') {
+      console.log('✗ no LISTING_SIGNING_KEY — registry index NOT signed (set the Actions secret or REQUIRE_SIGNING=1 to enable publication signing)');
+      return;
+    }
   }
 
-  const sig = signIndexBytes(index, seed);
+  const sig = await signIndexBytes(index, seed);
   writeFileSync(indexFile + '.sig', JSON.stringify(sig, null, 2) + '\n');
   writeFileSync(
     path.join(path.dirname(indexFile), 'verification-key.pub'),
     spkiPemFromPrivate(base64SeedToPkcs8Pem(seed)),
   );
-  console.log(`✓ signed registry index (${sig.key_id}) → listings.json.sig`);
+
+  // --- self-verify after signing ---
+  const writtenSig = JSON.parse(readFileSync(indexFile + '.sig', 'utf8'));
+  const publishedKeyPem = readFileSync(path.join(path.dirname(indexFile), 'verification-key.pub'), 'utf8');
+  if (!verifyIndexBytes(index, writtenSig, publishedKeyPem)) {
+    // clean up disagreeing artifacts
+    try { rmSync(indexFile + '.sig'); } catch (_) {}
+    try { rmSync(path.join(path.dirname(indexFile), 'verification-key.pub')); } catch (_) {}
+    throw new Error('signing self-verification FAILED — artifacts deleted; sign and verify must agree');
+  }
+
+  console.log(`✓ signed registry index (${writtenSig.key_id}) → listings.json.sig`);
 }
