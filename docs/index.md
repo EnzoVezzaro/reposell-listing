@@ -3,7 +3,7 @@ layout: home
 footer: false
 
 title: reposell Listing
-description: Discover software sold straight from the source. Every listing cryptographically verified.
+description: Discover verified software on listing.reposell.dev — every tool is checked against a signed manifest and a live /sell endpoint, with immutable records for each release.
 ---
 
 <LandingHero>
