@@ -1,5 +1,6 @@
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
+import { initAnalytics, watchRoute } from './analytics'
 
 import '../../branding/theme/styles/variables.css'
 import '../../branding/theme/styles/custom.css'
@@ -37,7 +38,9 @@ if (typeof localStorage !== 'undefined') {
 export default {
   extends: DefaultTheme,
   Layout: ReposellLayout,
-  enhanceApp({ app }) {
+  enhanceApp({ app, router }) {
+    initAnalytics()
+    watchRoute(router)
     app.component('VPButton', VPButton)
     app.component('VPCard', VPCard)
     app.component('VPBadge', VPBadge)
